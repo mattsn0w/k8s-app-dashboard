@@ -1,0 +1,7 @@
+# Common namespace for the deploy-dashboard app and demo workloads
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: apps
+  labels:
+    app.kubernetes.io/name: deploy-dashboard

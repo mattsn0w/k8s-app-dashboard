@@ -1,0 +1,46 @@
+# ServiceAccount for the deploy-dashboard app
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: deploy-dashboard
+  namespace: apps
+  labels:
+    app.kubernetes.io/name: deploy-dashboard
+---
+# ClusterRole: read pods/nodes/services/deployments/replicasets + logs,
+# edit deployments, create/delete deployments
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: deploy-dashboard
+  labels:
+    app.kubernetes.io/name: deploy-dashboard
+rules:
+- apiGroups: [""]
+  resources: ["pods", "nodes", "services"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["pods/log"]
+  verbs: ["get"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "replicasets"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["create", "delete"]
+---
+# Bind the ClusterRole to the ServiceAccount in the apps namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: deploy-dashboard
+  labels:
+    app.kubernetes.io/name: deploy-dashboard
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: deploy-dashboard
+subjects:
+- kind: ServiceAccount
+  name: deploy-dashboard
+  namespace: apps

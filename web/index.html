@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en" data-color-mode="light" data-light-theme="light" data-dark-theme="dark">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Devpod</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@primer/css@latest/dist/primer.css">
+<style>
+[data-color-mode="light"]{--bgColor-default:#eff1f5;--bgColor-overlay:#e2e5ec;--bgColor-muted:#dce0e8;--bgColor-attentive:#dce0e8;--bgColor-inset:#dce0e8;--fgColor-default:#4c4f69;--fgColor-muted:#6e738d;--fgColor-accent:#d2a8ff;--fgColor-success:#85b98e;--fgColor-attention:#dfb077;--fgColor-danger:#e7799f;--borderColor-default:#acb0c0;--borderColor-muted:#cdd1da;--borderColor-accent:#d2a8ff;--borderColor-success:#85b98e;--borderColor-attention:#dfb077;--borderColor-danger:#e7799f;--shadow-lg:0 8px 24px rgba(0,0,0,.08);--shadow-md:0 4px 12px rgba(0,0,0,.06);--shadow-sm:0 1px 4px rgba(0,0,0,.04)}
+[data-color-mode="dark"]{--bgColor-default:#1e1e2e;--bgColor-overlay:#232434;--bgColor-muted:#292b3e;--bgColor-attentive:#292b3e;--bgColor-inset:#292b3e;--fgColor-default:#c1c9e1;--fgColor-muted:#a1a6b9;--fgColor-accent:#ca9ce6;--fgColor-success:#a7d7a1;--fgColor-attention:#e5c88e;--fgColor-danger:#e78284;--borderColor-default:#494d64;--borderColor-muted:#3a3c50;--borderColor-accent:#ca9ce6;--borderColor-success:#a7d7a1;--borderColor-attention:#e5c88e;--borderColor-danger:#e78284;--shadow-lg:0 8px 24px rgba(0,0,0,.4);--shadow-md:0 4px 12px rgba(0,0,0,.3);--shadow-sm:0 1px 4px rgba(0,0,0,.2)}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif;background:var(--bgColor-default);color:var(--fgColor-default);min-height:100vh;margin:0;transition:background .2s,color .2s}
+.app-header{background:var(--bgColor-muted);border-bottom:1px solid var(--borderColor-default);padding:.75rem 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.app-header h1{font-size:1.1rem;font-weight:600;color:var(--fgColor-accent);letter-spacing:.02em;display:flex;align-items:center;gap:.5rem}
+.app-header h1 .subtitle{color:var(--fgColor-muted);font-weight:400;font-size:.9rem}
+.header-right{display:flex;align-items:center;gap:.5rem}
+.user-menu-wrap{position:relative}
+.user-menu{display:none;position:absolute;top:calc(100% + 4px);right:0;background:var(--bgColor-overlay);border:1px solid var(--borderColor-default);border-radius:6px;box-shadow:var(--shadow-lg);min-width:200px;z-index:300;overflow:hidden}
+.user-menu.open{display:block}
+.user-menu-item{display:flex;align-items:center;gap:.5rem;width:100%;padding:.5rem 1rem;background:transparent;border:none;color:var(--fgColor-default);font-size:.8rem;font-family:inherit;cursor:pointer;text-align:left;transition:background .1s}
+.user-menu-item:hover{background:var(--bgColor-muted)}
+.user-menu-item .octicon{color:var(--fgColor-muted)}
+.user-menu-sep{border:none;border-top:1px solid var(--borderColor-muted);margin:4px 0}
+main{padding:1.5rem;max-width:1200px;margin:0 auto}
+.section-title{font-size:.8rem;color:var(--fgColor-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.75rem;font-weight:600}
+.table-wrap{background:var(--bgColor-overlay);border:1px solid var(--borderColor-default);border-radius:6px;overflow:hidden;box-shadow:var(--shadow-sm)}
+table{width:100%;border-collapse:collapse}
+thead{background:var(--bgColor-muted)}
+th{padding:.5rem 1rem;font-size:.7rem;text-transform:uppercase;letter-spacing:.06em;color:var(--fgColor-muted);text-align:right;font-weight:600;border-bottom:1px solid var(--borderColor-default)}
+th:first-child{text-align:left}
+td{padding:.625rem 1rem;border-bottom:1px solid var(--borderColor-muted);font-size:.85rem;vertical-align:middle;text-align:right}
+td:first-child{text-align:left}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:var(--bgColor-attentive)}
+.name-cell{font-weight:600;color:var(--fgColor-default)}
+.name-cell-inner{display:flex;align-items:center;gap:.5rem}
+.workload-link{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;padding:0;font-size:.75rem;font-weight:400;color:var(--fgColor-accent);text-decoration:none;border:1px solid var(--borderColor-accent);border-radius:2px;transition:background .1s,color .1s}
+.workload-link:hover{background:var(--fgColor-accent);color:var(--bgColor-default)}
+.toggle{position:relative;width:32px;height:16px;background:var(--bgColor-muted);border-radius:2px;cursor:pointer;border:1px solid var(--borderColor-default);transition:all .2s;flex-shrink:0}
+.toggle::after{content:'';position:absolute;top:1px;left:1px;width:12px;height:12px;background:var(--fgColor-muted);border-radius:2px;transition:all .2s}
+.toggle.on{background:var(--fgColor-success);border-color:var(--fgColor-success)}
+.toggle.on::after{left:17px;background:var(--bgColor-default)}
+.actions-cell{display:flex;gap:.375rem;justify-content:flex-end;align-items:center}
+.btn-icon{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;background:var(--bgColor-muted);border:1px solid var(--borderColor-default);border-radius:6px;color:var(--fgColor-default);cursor:pointer;transition:all .1s}
+.btn-icon:hover{background:var(--bgColor-attentive);border-color:var(--borderColor-accent)}
+.btn-icon .octicon{fill:currentColor}
+.btn-icon.danger{color:var(--fgColor-danger);border-color:var(--borderColor-danger)}
+.btn-icon.danger:hover{background:var(--fgColor-danger);color:var(--bgColor-default)}
+.btn-icon.warning{color:var(--fgColor-attention);border-color:var(--borderColor-attention)}
+.btn-icon.warning:hover{background:var(--fgColor-attention);color:var(--bgColor-default)}
+.status-badge{display:inline-flex;align-items:center;gap:.375rem;padding:.25rem .625rem;border-radius:2em;font-size:.7rem;font-weight:600;white-space:nowrap}
+.status-badge .octicon{width:12px;height:12px}
+.status-badge.success{background:color-mix(in srgb,var(--fgColor-success) 20%,transparent);color:var(--fgColor-success);border:1px solid var(--borderColor-success)}
+.status-badge.stopped{background:var(--bgColor-muted);color:var(--fgColor-muted);border:1px solid var(--borderColor-muted)}
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
+.modal-overlay.open{display:flex}
+.modal{background:var(--bgColor-overlay);border:1px solid var(--borderColor-default);border-radius:6px;width:90%;max-width:800px;max-height:80vh;display:flex;flex-direction:column;box-shadow:var(--shadow-lg)}
+.modal-header{display:flex;align-items:center;justify-content:space-between;padding:.75rem 1rem;border-bottom:1px solid var(--borderColor-default);background:var(--bgColor-muted);border-radius:6px 6px 0 0}
+.modal-header h3{font-size:.85rem;color:var(--fgColor-default);font-weight:600;display:flex;align-items:center;gap:.5rem}
+.modal-header h3 .octicon{color:var(--fgColor-accent)}
+.modal-header .modal-actions{display:flex;align-items:center;gap:.5rem}
+.modal-close{background:none;border:none;color:var(--fgColor-muted);font-size:1.1rem;cursor:pointer;padding:.25rem .5rem;border-radius:4px;display:inline-flex;align-items:center;justify-content:center}
+.modal-close:hover{color:var(--fgColor-danger);background:var(--bgColor-attentive)}
+.modal-body{flex:1;overflow-y:auto;padding:1rem;font-size:.8rem;line-height:1.6}
+.modal-body pre{white-space:pre-wrap;word-break:break-all;color:var(--fgColor-muted);font-family:"SF Mono","Fira Code","JetBrains Mono",monospace;font-size:.75rem;margin:0}
+.modal-body .log-line{display:block;padding:.1rem 0}
+.modal-body .log-line:hover{background:var(--bgColor-muted);border-radius:3px}
+.modal-footer{padding:.75rem 1rem;border-top:1px solid var(--borderColor-default);display:flex;justify-content:flex-end;gap:.5rem;align-items:center}
+.modal-footer .status-text{font-size:.7rem;color:var(--fgColor-muted);margin-right:auto}
+.settings-modal textarea{width:100%;min-height:120px;background:var(--bgColor-muted);border:1px solid var(--borderColor-default);border-radius:6px;color:var(--fgColor-default);font-family:"SF Mono","Fira Code",monospace;font-size:.8rem;padding:.75rem;resize:vertical}
+.settings-modal textarea:focus{outline:none;border-color:var(--borderColor-accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--fgColor-accent) 20%,transparent)}
+.help-btn{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;background:var(--bgColor-muted);border:1px solid var(--borderColor-default);border-radius:50%;color:var(--fgColor-muted);font-size:.7rem;cursor:pointer;position:relative}
+.help-btn:hover{background:var(--bgColor-attentive);color:var(--fgColor-default)}
+.help-btn .tooltip{display:none;position:absolute;bottom:130%;left:50%;transform:translateX(-50%);background:var(--bgColor-muted);color:var(--fgColor-default);border:1px solid var(--borderColor-default);border-radius:6px;padding:.5rem .75rem;font-size:.7rem;white-space:nowrap;z-index:400;pointer-events:none;box-shadow:var(--shadow-md)}
+.help-btn:hover .tooltip{display:block}
+.token-row{display:flex;gap:.5rem;margin-bottom:.5rem}
+.token-row input{flex:1;background:var(--bgColor-muted);border:1px solid var(--borderColor-default);border-radius:6px;color:var(--fgColor-default);font-family:"SF Mono","Fira Code",monospace;font-size:.8rem;padding:.5rem .75rem}
+.token-row input:focus{outline:none;border-color:var(--borderColor-accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--fgColor-accent) 20%,transparent)}
+.loading{text-align:center;padding:2rem;color:var(--fgColor-muted)}
+.loading .spinner{display:inline-block;width:24px;height:24px;border:3px solid var(--borderColor-default);border-top-color:var(--fgColor-accent);border-radius:50%;animation:spin .8s linear infinite}
+@keyframes spin{to{transform:rotate(360deg)}}
+.empty-state{text-align:center;padding:3rem;color:var(--fgColor-muted)}
+.empty-state .octicon{width:32px;height:32px;margin-bottom:.5rem}
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:var(--bgColor-muted)}
+::-webkit-scrollbar-thumb{background:var(--borderColor-default);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--fgColor-muted)}
+@media(max-width:768px){.actions-cell{flex-direction:column}.app-header{padding:.75rem 1rem}main{padding:1rem}}
+</style>
+</head>
+<body>
+
+<svg style="display:none" xmlns="http://www.w3.org/2000/svg">
+<symbol id="octicon-gear" viewBox="0 0 24 24"><path d="M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0Zm-1.5 0a2.5 2.5 0 1 0-5 0 2.5 2.5 0 0 0 5 0Z"/><path d="M12 1c.266 0 .532.009.797.028.763.055 1.345.617 1.512 1.304l.352 1.45c.019.078.09.171.225.221.247.089.49.19.728.302.13.061.246.044.315.002l1.275-.776c.603-.368 1.411-.353 1.99.147.402.349.78.726 1.128 1.129.501.578.515 1.386.147 1.99l-.776 1.274c-.042.069-.058.185.002.315.112.238.213.481.303.728.048.135.142.205.22.225l1.45.352c.687.167 1.249.749 1.303 1.512.038.531.038 1.063 0 1.594-.054.763-.616 1.345-1.303 1.512l-1.45.352c-.078.019-.171.09-.221.225-.089.248-.19.491-.302.728-.061.13-.044.246-.002.315l.776 1.275c.368.603.353 1.411-.147 1.99-.349.402-.726.78-1.129 1.128-.578.501-1.386.515-1.99.147l-1.274-.776c-.069-.042-.185-.058-.314.002a8.606 8.606 0 0 1-.729.303c-.135.048-.205.142-.225.22l-.352 1.45c-.167.687-.749 1.249-1.512 1.303-.531.038-1.063.038-1.594 0-.763-.054-1.345-.616-1.512-1.303l-.352-1.45c-.019-.078-.09-.171-.225-.221a8.138 8.138 0 0 1-.728-.302c-.13-.061-.246-.044-.315-.002l-1.275.776c-.603.368-1.411.353-1.99-.147-.402-.349-.78-.726-1.128-1.129-.501-.578-.515-1.386-.147-1.99l.776-1.274c.042-.069.058-.185-.002-.314a8.606 8.606 0 0 1-.303-.729c-.048-.135-.142-.205-.22-.225l-1.45-.352c-.687-.167-1.249-.749-1.304-1.512a11.158 11.158 0 0 1 0-1.594c.055-.763.617-1.345 1.304-1.512l1.45-.352c.078-.019.171-.09.221-.225.089-.248.19-.491.302-.728.061-.13.044-.246.002-.315l-.776-1.275c-.368-.603-.353-1.411.147-1.99.349-.402.726-.78 1.129-1.128.578-.501 1.386-.515 1.99-.147l1.274.776c.069.042.185.058.315-.002.238-.112.481-.213.728-.303.135-.048.205-.142.225-.22l.352-1.45c.167-.687.749-1.249 1.512-1.304C11.466 1.01 11.732 1 12 1Zm-.69 1.525c-.055.004-.135.05-.161.161l-.353 1.45a1.832 1.832 0 0 1-1.172 1.277 7.147 7.147 0 0 0-.6.249 1.833 1.833 0 0 1-1.734-.074l-1.274-.776c-.098-.06-.186-.036-.228 0a9.774 9.774 0 0 0-.976.976c-.036.042-.06.131 0 .228l.776 1.274c.314.529.342 1.18.074 1.734a7.147 7.147 0 0 0-.249.6 1.831 1.831 0 0 1-1.278 1.173l-1.45.351c-.11.027-.156.107-.16.162a9.63 9.63 0 0 0 0 1.38c.004.055.05.135.161.161l1.45.353a1.832 1.832 0 0 1 1.277 1.172c.074.204.157.404.249.6.268.553.24 1.204-.074 1.733l-.776 1.275c-.06.098-.036.186 0 .228.301.348.628.675.976.976.042.036.131.06.228 0l1.274-.776a1.83 1.83 0 0 1 1.734-.075c.196.093.396.176.6.25a1.831 1.831 0 0 1 1.173 1.278l.351 1.45c.027.11.107.156.162.16a9.63 9.63 0 0 0 1.38 0c.055-.004.135-.05.161-.161l.353-1.45a1.834 1.834 0 0 1 1.172-1.278 6.82 6.82 0 0 0 .6-.248 1.831 1.831 0 0 1 1.733.074l1.275.776c.098.06.186.036.228 0 .348-.301.675-.628.976-.976.036-.042.06-.131 0-.228l-.776-1.275a1.834 1.834 0 0 1-.075-1.733c.093-.196.176-.396.25-.6a1.831 1.831 0 0 1 1.278-1.173l1.45-.351c.11-.027.156-.107.16-.162a9.63 9.63 0 0 0 0-1.38c-.004-.055-.05-.135-.161-.161l-1.45-.353c-.626-.152-1.08-.625-1.278-1.172a6.576 6.576 0 0 0-.248-.6 1.833 1.833 0 0 1 .074-1.734l.776-1.274c.06-.098.036-.186 0-.228a9.774 9.774 0 0 0-.976-.976c-.042-.036-.131-.06-.228 0l-1.275.776a1.831 1.831 0 0 1-1.733.074 6.88 6.88 0 0 0-.6-.249 1.835 1.835 0 0 1-1.173-1.278l-.351-1.45c-.027-.11-.107-.156-.162-.16a9.63 9.63 0 0 0-1.38 0Z"/></symbol>
+<symbol id="octicon-key" viewBox="0 0 24 24"><path d="M16.75 8.5a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5Z"/><path d="M15.75 0a8.25 8.25 0 1 1-2.541 16.101l-1.636 1.636a1.744 1.744 0 0 1-1.237.513H9.25a.25.25 0 0 0-.25.25v1.448a.876.876 0 0 1-.256.619l-.214.213a.75.75 0 0 1-.545.22H5.25a.25.25 0 0 0-.25.25v1A1.75 1.75 0 0 1 3.25 24h-1.5A1.75 1.75 0 0 1 0 22.25v-2.836c0-.464.185-.908.513-1.236l7.386-7.388A8.249 8.249 0 0 1 15.75 0ZM9 8.25a6.733 6.733 0 0 0 .463 2.462.75.75 0 0 1-.168.804l-7.722 7.721a.25.25 0 0 0-.073.177v2.836c0 .138.112.25.25.25h1.5a.25.25 0 0 0 .25-.25v-1c0-.966.784-1.75 1.75-1.75H7.5v-1c0-.966.784-1.75 1.75-1.75h1.086a.25.25 0 0 0 .177-.073l1.971-1.972a.75.75 0 0 1 .804-.168A6.75 6.75 0 1 0 9 8.25Z"/></symbol>
+<symbol id="octicon-lock" viewBox="0 0 24 24"><path d="M6 9V7.25C6 3.845 8.503 1 12 1s6 2.845 6 6.25V9h.5a2.5 2.5 0 0 1 2.5 2.5v8a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 19.5v-8A2.5 2.5 0 0 1 5.5 9Zm-1.5 2.5v8a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-13a1 1 0 0 0-1 1Zm3-4.25V9h9V7.25c0-2.67-1.922-4.75-4.5-4.75-2.578 0-4.5 2.08-4.5 4.75Z"/></symbol>
+<symbol id="octicon-trash" viewBox="0 0 24 24"><path d="M16 1.75V3h5.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H8V1.75C8 .784 8.784 0 9.75 0h4.5C15.216 0 16 .784 16 1.75Zm-6.5 0V3h5V1.75a.25.25 0 0 0-.25-.25h-4.5a.25.25 0 0 0-.25.25ZM4.997 6.178a.75.75 0 1 0-1.493.144L4.916 20.92a1.75 1.75 0 0 0 1.742 1.58h10.684a1.75 1.75 0 0 0 1.742-1.581l1.413-14.597a.75.75 0 0 0-1.494-.144l-1.412 14.596a.25.25 0 0 1-.249.226H6.658a.25.25 0 0 1-.249-.226L4.997 6.178Z"/><path d="M9.206 7.501a.75.75 0 0 1 .793.705l.5 8.5A.75.75 0 1 1 9 16.794l-.5-8.5a.75.75 0 0 1 .705-.793Zm6.293.793A.75.75 0 1 0 14 8.206l-.5 8.5a.75.75 0 0 0 1.498.088l.5-8.5Z"/></symbol>
+<symbol id="octicon-pulse" viewBox="0 0 24 24"><path d="M9.002 2.5a.75.75 0 0 1 .691.464l6.302 15.305 2.56-6.301a.75.75 0 0 1 .695-.468h4a.75.75 0 0 1 0 1.5h-3.495l-3.06 7.532a.75.75 0 0 1-1.389.004L8.997 5.21l-3.054 7.329A.75.75 0 0 1 5.25 13H.75a.75.75 0 0 1 0-1.5h4l3.558-8.538a.75.75 0 0 1 .694-.462Z"/></symbol>
+<symbol id="octicon-sun" viewBox="0 0 16 16"><path d="M8 12a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-1.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Zm5.657-8.157a.75.75 0 0 1 0 1.061l-1.061 1.06a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734l1.06-1.06a.75.75 0 0 1 1.06 0Zm-9.193 9.193a.75.75 0 0 1 0 1.06l-1.06 1.061a.75.75 0 1 1-1.061-1.06l1.06-1.061a.75.75 0 0 1 1.061 0ZM8 0a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0V.75A.75.75 0 0 1 8 0ZM3 8a.75.75 0 0 1-.75.75H.75a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 3 8Zm13 0a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 16 8Zm-8 5a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 8 13Zm3.536-1.464a.75.75 0 0 1 1.06 0l1.061 1.06a.75.75 0 0 1-1.06 1.061l-1.061-1.06a.75.75 0 0 1 0-1.061ZM2.343 2.343a.75.75 0 0 1 1.061 0l1.06 1.061a.751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018l-1.06-1.06a.75.75 0 0 1 0-1.06Z"/></symbol>
+<symbol id="octicon-moon" viewBox="0 0 16 16"><path d="M9.598 1.591a.749.749 0 0 1 .785-.175 7.001 7.001 0 1 1-8.967 8.967.75.75 0 0 1 .961-.96 5.5 5.5 0 0 0 7.046-7.046.75.75 0 0 1 .175-.786Zm1.616 1.945a7 7 0 0 1-7.678 7.678 5.499 5.499 0 1 0 7.678-7.678Z"/></symbol>
+<symbol id="octicon-stop" viewBox="0 0 16 16"><path d="M4.47.22A.749.749 0 0 1 5 0h6c.199 0 .389.079.53.22l4.25 4.25c.141.14.22.331.22.53v6a.749.749 0 0 1-.22.53l-4.25 4.25A.749.749 0 0 1 11 16H5a.749.749 0 0 1-.53-.22L.22 11.53A.749.749 0 0 1 0 11V5c0-.199.079-.389.22-.53Zm.84 1.28L1.5 5.31v5.38l3.81 3.81h5.38l3.81-3.81V5.31L10.69 1.5ZM8 4a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 4Zm0 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/></symbol>
+<symbol id="octicon-x-mark" viewBox="0 0 16 16"><path d="M3.7 1.3a1 1 0 0 1 1.4 0l3.6 3.6 3.6-3.6a1 1 0 0 1 1.4 1.4L10.1 6.3l3.6 3.6a1 1 0 0 1-1.4 1.4L8.7 7.7l-3.6 3.6a1 1 0 0 1-1.4-1.4L7.3 6.3 3.7 2.7a1 1 0 0 1 0-1.4Z"/></symbol>
+<symbol id="octicon-info" viewBox="0 0 16 16"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/></symbol>
+<symbol id="octicon-alert" viewBox="0 0 16 16"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></symbol>
+<symbol id="octicon-check-circle" viewBox="0 0 16 16"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm1.5 0a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm10.28-1.72-4.5 4.5a.75.75 0 0 1-1.06 0l-2-2a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l1.47 1.47 3.97-3.97a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042Z"/></symbol>
+<symbol id="octicon-cloud" viewBox="0 0 24 24"><path d="M3.103 10.107c0-4.244 3.445-7.607 7.733-7.607 3.19 0 5.912 1.858 7.099 4.563l.01.022.001.006C21.348 7.345 24 10.095 24 13.536 24 17.148 21.076 20 17.431 20H5.017C2.23 20 0 17.83 0 15.06a4.899 4.899 0 0 1 3.112-4.581 7.696 7.696 0 0 1-.009-.372ZM10.836 4c-3.485 0-6.233 2.717-6.233 6.107 0 .284.022.602.052.756a.75.75 0 0 1-.552.869c-1.52.385-2.603 1.712-2.603 3.328 0 1.917 1.532 3.44 3.517 3.44h12.414c2.843 0 5.069-2.206 5.069-4.964 0-2.759-2.226-4.965-5.069-4.965a.75.75 0 0 1-.696-.47l-.179-.446C15.606 5.5 13.424 4 10.836 4Z"/></symbol>
+<symbol id="octicon-link-external" viewBox="0 0 16 16"><path d="M3.75 2h3.5a.75.75 0 0 1 0 1.5h-3.5a.25.25 0 0 0-.25.25v8.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25v-3.5a.75.75 0 0 1 1.5 0v3.5A1.75 1.75 0 0 1 12.25 14h-8.5A1.75 1.75 0 0 1 2 12.25v-8.5C2 2.784 2.784 2 3.75 2Zm6.854-1h4.146a.25.25 0 0 1 .25.25v4.146a.25.25 0 0 1-.427.177L13.03 4.03 9.28 7.78a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l3.75-3.75-1.543-1.543A.25.25 0 0 1 10.604 1Z"/></symbol>
+</svg>
+
+<header class="app-header">
+  <h1>
+    <svg class="octicon" width="24" height="24"><use href="#octicon-pulse"/></svg>
+    Devpod <span class="subtitle">Control Panel</span>
+  </h1>
+  <div class="header-right">
+    <div class="user-menu-wrap">
+      <button class="btn-icon" id="userMenuBtn" title="User settings" onclick="toggleUserMenu()">
+        <svg class="octicon" width="16" height="16"><use href="#octicon-gear"/></svg>
+      </button>
+      <div class="user-menu" id="userMenu">
+        <button class="user-menu-item" onclick="openSSHKeyModal()">
+          <svg class="octicon" width="16" height="16"><use href="#octicon-key"/></svg>
+          SSH Key
+        </button>
+        <button class="user-menu-item" onclick="openTokensModal()">
+          <svg class="octicon" width="16" height="16"><use href="#octicon-lock"/></svg>
+          Access Tokens
+        </button>
+        <a class="user-menu-item" href="http://example.co.slakin.net" target="_blank" rel="noopener noreferrer">
+          <svg class="octicon" width="16" height="16"><use href="#octicon-info"/></svg>
+          Help/Docs
+        </a>
+        <hr class="user-menu-sep">
+        <button class="user-menu-item" onclick="cycleTheme()" id="themeMenuItem">
+          <svg class="octicon" width="16" height="16" id="themeMenuIcon"><use href="#octicon-moon"/></svg>
+          <span id="themeMenuLabel">Switch to Dark</span>
+        </button>
+      </div>
+    </div>
+  </div>
+</header>
+
+<main>
+  <div class="section-title">Deployments</div>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Status</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="deploymentsBody">
+        <tr><td colspan="3" class="loading"><div class="spinner"></div><div>Loading deployments…</div></td></tr>
+      </tbody>
+    </table>
+  </div>
+</main>
+
+<div class="modal-overlay" id="logModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><svg class="octicon" width="16" height="16"><use href="#octicon-pulse"/></svg><span id="logTitle">Logs</span></h3>
+      <div class="modal-actions">
+        <button class="modal-close" onclick="closeLogModal()"><svg class="octicon" width="16" height="16"><use href="#octicon-x-mark"/></svg></button>
+      </div>
+    </div>
+    <div class="modal-body"><pre id="logContent"></pre></div>
+    <div class="modal-footer">
+      <span class="status-text" id="logStatus">Connecting…</span>
+      <span class="status-text">Follow: real-time</span>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay settings-modal" id="sshKeyModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><svg class="octicon" width="16" height="16"><use href="#octicon-key"/></svg>SSH Public Key</h3>
+      <div class="modal-actions">
+        <button class="help-btn" onclick="navigator.clipboard.writeText('ssh-keygen -t ed25519 -c $(whoami)@amd.com')" title="Click to copy command">
+          <svg class="octicon" width="16" height="16"><use href="#octicon-info"/></svg>
+          <span class="tooltip">Run: ssh-keygen -t ed25519 -c $(whoami)@amd.com<br>Then paste the public key below</span>
+        </button>
+        <button class="modal-close" onclick="closeSettingsModal('sshKeyModal')"><svg class="octicon" width="16" height="16"><use href="#octicon-x-mark"/></svg></button>
+      </div>
+    </div>
+    <div class="modal-body"><textarea id="sshKeyInput" placeholder="Paste your SSH public key here…"></textarea></div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeSettingsModal('sshKeyModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveSSHKey()">Save</button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay settings-modal" id="tokensModal">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><svg class="octicon" width="16" height="16"><use href="#octicon-lock"/></svg>Access Tokens</h3>
+      <div class="modal-actions">
+        <button class="modal-close" onclick="closeSettingsModal('tokensModal')"><svg class="octicon" width="16" height="16"><use href="#octicon-x-mark"/></svg></button>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div class="token-row"><input type="text" id="tokenKey0" placeholder="ENV_VAR_NAME"><input type="text" id="tokenVal0" placeholder="token value"></div>
+      <div class="token-row"><input type="text" id="tokenKey1" placeholder="ENV_VAR_NAME"><input type="text" id="tokenVal1" placeholder="token value"></div>
+      <div class="token-row"><input type="text" id="tokenKey2" placeholder="ENV_VAR_NAME"><input type="text" id="tokenVal2" placeholder="token value"></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" onclick="closeSettingsModal('tokensModal')">Cancel</button>
+      <button class="btn btn-primary" onclick="saveTokens()">Save</button>
+    </div>
+  </div>
+</div>
+
+
+<script>
+const THEME_KEY = 'deploy-dashboard-theme';
+
+function setTheme(theme) {
+  const isLight = theme === 'latte';
+  document.documentElement.setAttribute('data-color-mode', isLight ? 'light' : 'dark');
+  document.documentElement.setAttribute('data-light-theme', 'light');
+  document.documentElement.setAttribute('data-dark-theme', 'dark');
+  localStorage.setItem(THEME_KEY, theme);
+  const label = document.getElementById('themeMenuLabel');
+  const icon = document.getElementById('themeMenuIcon');
+  if (label) label.textContent = isLight ? 'Switch to Dark' : 'Switch to Light';
+  if (icon) icon.innerHTML = `<use href="#octicon-${isLight ? 'moon' : 'sun'}"/>`;
+}
+
+function cycleTheme() {
+  const current = localStorage.getItem(THEME_KEY) || 'latte';
+  const next = current === 'latte' ? 'frappe' : 'latte';
+  setTheme(next);
+  document.getElementById('userMenu').classList.remove('open');
+}
+
+setTheme(localStorage.getItem(THEME_KEY) || 'latte');
+
+async function api(path, opts = {}) {
+  const res = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...opts });
+  if (!res.ok) { const err = await res.text(); throw new Error(err || `HTTP ${res.status}`); }
+  return res.json();
+}
+
+let deployments = [];
+let logAbortController = null;
+let logWS = null;
+
+function renderDeployments() {
+  const tbody = document.getElementById('deploymentsBody');
+  if (deployments.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="3" class="empty-state">
+      <svg class="octicon" width="32" height="32"><use href="#octicon-cloud"/></svg>
+      <div>No deployments found in this namespace.</div>
+    </td></tr>`;
+    return;
+  }
+  tbody.innerHTML = deployments.map(d => `
+    <tr data-name="${d.name}">
+      <td class="name-cell">
+        <div class="name-cell-inner">
+          <span>${d.name}</span>
+          ${d.workloadUrl ? `<a class="workload-link" href="${d.workloadUrl}" target="_blank" rel="noopener noreferrer" title="Open ${d.workloadUrl}">
+            <svg class="octicon" width="12" height="12"><use href="#octicon-link-external"/></svg>
+          </a>` : ''}
+        </div>
+      </td>
+      <td>
+        ${d.running
+          ? `<span class="status-badge success">
+              <svg class="octicon" width="12" height="12"><use href="#octicon-check-circle"/></svg>
+              ${d.ready} containers running
+            </span>`
+          : `<span class="status-badge stopped">
+              <svg class="octicon" width="12" height="12"><use href="#octicon-stop"/></svg>
+              0 containers running
+            </span>`
+        }
+      </td>
+      <td>
+        <div class="actions-cell">
+          <div class="toggle ${d.running ? 'on' : ''}" onclick="toggleDeployment('${d.name}', ${!d.running})" title="${d.running ? 'Stop' : 'Start'}"></div>
+          <button class="btn-icon" onclick="showLogs('${d.name}')" title="View logs">
+            <svg class="octicon" width="16" height="16"><use href="#octicon-pulse"/></svg>
+          </button>
+          <button class="btn-icon warning" onclick="killPods('${d.name}')" title="Terminate pods">
+            <svg class="octicon" width="16" height="16"><use href="#octicon-stop"/></svg>
+          </button>
+          <button class="btn-icon danger" onclick="deleteDeployment('${d.name}')" title="Delete deployment">
+            <svg class="octicon" width="16" height="16"><use href="#octicon-trash"/></svg>
+          </button>
+        </div>
+      </td>
+    </tr>
+  `).join('');
+}
+
+async function toggleDeployment(name, run) {
+  const d = deployments.find(x => x.name === name);
+  if (!d) return;
+  const targetReplicas = run ? (d.replicas === 0 ? 1 : d.replicas) : 0;
+  try {
+    await api(`api/scale?deployment=${encodeURIComponent(name)}`, { method: 'POST', body: JSON.stringify({ replicas: targetReplicas }) });
+    d.replicas = targetReplicas;
+    d.running = run;
+    renderDeployments();
+    setTimeout(fetchDeployments, 1500);
+  } catch (err) { alert(`Failed to scale ${name}: ${err.message}`); }
+}
+
+async function killPods(name) {
+  if (!confirm(`Terminate all pods for deployment "${name}"?\nThe deployment controller will recreate them.`)) return;
+  try {
+    await api(`api/kill-pods?deployment=${encodeURIComponent(name)}`, { method: 'POST' });
+    setTimeout(fetchDeployments, 1000);
+  } catch (err) { alert(`Failed to terminate pods: ${err.message}`); }
+}
+
+async function deleteDeployment(name) {
+  if (!confirm(`Delete deployment "${name}"?\nThis will remove the deployment and all its pods.\nThis cannot be undone.`)) return;
+  try {
+    await api(`api/delete-deployment?deployment=${encodeURIComponent(name)}`, { method: 'DELETE' });
+    setTimeout(fetchDeployments, 1000);
+  } catch (err) { alert(`Failed to delete deployment: ${err.message}`); }
+}
+
+async function showLogs(deploymentName) {
+  let pods;
+  try { pods = await api(`api/pods?deployment=${encodeURIComponent(deploymentName)}`); }
+  catch (err) { alert(`Failed to fetch pods: ${err.message}`); return; }
+  if (!pods || pods.length === 0) { alert(`No pods found for ${deploymentName}`); return; }
+  const pod = pods.find(p => p.ready) || pods[0];
+  const container = pod.containers[0] || '';
+  openLogModal(deploymentName, pod.name, container);
+}
+
+function openLogModal(deploymentName, podName, containerName) {
+  if (logWS) { logWS.close(); logWS = null; }
+  if (logAbortController) { logAbortController.abort(); logAbortController = null; }
+  const modal = document.getElementById('logModal');
+  const title = document.getElementById('logTitle');
+  const contentEl = document.getElementById('logContent');
+  const status = document.getElementById('logStatus');
+  title.textContent = `${deploymentName} / ${podName}`;
+  contentEl.innerHTML = '';
+  status.textContent = 'Connecting…';
+  modal.classList.add('open');
+
+  // Build WebSocket URL relative to current path (subPath support)
+  const proto = location.protocol === 'https:' ? 'wss:' : 'ws:';
+  const basePath = location.pathname.replace(/\/$/, '');
+  const wsURL = `${proto}//${location.host}${basePath}/api/logs-ws`;
+  logWS = new WebSocket(wsURL);
+
+  logWS.onopen = () => {
+    status.textContent = 'Streaming…';
+    logWS.send(JSON.stringify({ action: 'follow', pod: podName, container: containerName }));
+  };
+  logWS.onmessage = (event) => {
+    const data = event.data;
+    // JSON control messages
+    if (data.startsWith('{')) {
+      try {
+        const msg = JSON.parse(data);
+        if (msg.start) {
+          status.textContent = `Streaming ${msg.pod}…`;
+        } else if (msg.end) {
+          status.textContent = msg.error ? `Stream ended: ${msg.error}, reconnecting in 3s…` : 'Stream ended, reconnecting in 3s…';
+          if (!modal.classList.contains('open')) return;
+          setTimeout(() => {
+            if (modal.classList.contains('open')) {
+              openLogModal(deploymentName, podName, containerName);
+            }
+          }, 3000);
+        } else if (msg.error) {
+          status.textContent = `Error: ${msg.error}`;
+        }
+      } catch {}
+      return;
+    }
+    // Log lines
+    const lines = data.split('\n').filter(l => l.length > 0);
+    for (const line of lines) {
+      const div = document.createElement('div');
+      div.className = 'log-line';
+      div.textContent = line;
+      contentEl.appendChild(div);
+    }
+    const body = document.querySelector('.modal-body');
+    body.scrollTop = body.scrollHeight;
+  };
+  logWS.onerror = () => {
+    status.textContent = 'WebSocket error, retrying in 3s…';
+  };
+  logWS.onclose = () => {
+    if (modal.classList.contains('open')) {
+      status.textContent = 'Disconnected, reconnecting in 3s…';
+      setTimeout(() => {
+        if (modal.classList.contains('open')) {
+          openLogModal(deploymentName, podName, containerName);
+        }
+      }, 3000);
+    }
+  };
+}
+
+function closeLogModal() {
+  if (logWS) {
+    logWS.send(JSON.stringify({ action: 'stop' }));
+    logWS.close();
+    logWS = null;
+  }
+  if (logAbortController) { logAbortController.abort(); logAbortController = null; }
+  document.getElementById('logModal').classList.remove('open');
+}
+document.getElementById('logModal').addEventListener('click', e => { if (e.target === e.currentTarget) closeLogModal(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape') closeLogModal(); });
+
+async function fetchDeployments() {
+  try {
+    deployments = await api('api/deployments');
+    renderDeployments();
+  } catch (err) {
+    document.getElementById('deploymentsBody').innerHTML =
+      `<tr><td colspan="3" class="empty-state">
+        <svg class="octicon" width="32" height="32"><use href="#octicon-alert"/></svg>
+        <div>Failed to load deployments: ${err.message}</div>
+      </td></tr>`;
+  }
+}
+
+function toggleUserMenu() { document.getElementById('userMenu').classList.toggle('open'); }
+document.addEventListener('click', e => { if (!e.target.closest('.user-menu-wrap')) document.getElementById('userMenu').classList.remove('open'); });
+
+function closeSettingsModal(id) {
+  document.getElementById(id).classList.remove('open');
+  document.getElementById('userMenu').classList.remove('open');
+}
+
+async function openSSHKeyModal() {
+  document.getElementById('userMenu').classList.remove('open');
+  try {
+    const data = await api('api/user-settings');
+    document.getElementById('sshKeyInput').value = data['ssh-public-key'] || '';
+  } catch { document.getElementById('sshKeyInput').value = ''; }
+  document.getElementById('sshKeyModal').classList.add('open');
+}
+
+async function saveSSHKey() {
+  const key = document.getElementById('sshKeyInput').value.trim();
+  try {
+    await api('api/user-settings', { method: 'PUT', body: JSON.stringify({'ssh-public-key': key}) });
+    closeSettingsModal('sshKeyModal');
+  } catch (err) { alert('Failed to save: ' + err.message); }
+}
+
+async function openTokensModal() {
+  document.getElementById('userMenu').classList.remove('open');
+  try {
+    const tokens = await api('api/tokens');
+    const entries = Object.entries(tokens);
+    for (let i = 0; i < 3; i++) {
+      const k = document.getElementById('tokenKey' + i);
+      const v = document.getElementById('tokenVal' + i);
+      if (entries[i]) { k.value = entries[i][0]; v.value = entries[i][1]; }
+      else { k.value = ''; v.value = ''; }
+    }
+  } catch { for (let i = 0; i < 3; i++) { document.getElementById('tokenKey'+i).value=''; document.getElementById('tokenVal'+i).value=''; } }
+  document.getElementById('tokensModal').classList.add('open');
+}
+
+async function saveTokens() {
+  const tokens = {};
+  for (let i = 0; i < 3; i++) {
+    const k = document.getElementById('tokenKey' + i).value.trim();
+    const v = document.getElementById('tokenVal' + i).value.trim();
+    if (k && v) tokens[k] = v;
+  }
+  try {
+    await api('api/tokens', { method: 'PUT', body: JSON.stringify(tokens) });
+    closeSettingsModal('tokensModal');
+  } catch (err) { alert('Failed to save: ' + err.message); }
+}
+
+fetchDeployments();
+setInterval(() => { fetchDeployments(); }, 10000);
+</script>
+</body>
+</html>
