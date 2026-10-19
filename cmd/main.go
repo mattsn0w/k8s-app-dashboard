@@ -313,22 +313,25 @@ func (c *k8sClient) listDeployments(ctx context.Context) ([]deploymentView, erro
 	}
 	out := make([]deploymentView, 0, len(dl.Items))
 	for _, d := range dl.Items {
+		// Per spec, only deployments that carry a valid workload-url
+		// annotation appear in the Deployments tab. Everything else (e.g.
+		// the dashboard's own deployment) is excluded.
+		u, ok := d.Metadata.Annotations["workload-url"]
+		if !ok || !isValidWorkloadURL(u) {
+			continue
+		}
+
 		names := []string{}
 		for _, ctr := range d.Spec.Template.Spec.Containers {
 			names = append(names, ctr.Name)
 		}
 		running := d.Spec.Replicas > 0 && d.Status.ReadyReplicas == d.Spec.Replicas
-		// Extract workload-url annotation if present and valid.
-		workloadURL := ""
-		if u, ok := d.Metadata.Annotations["workload-url"]; ok && isValidWorkloadURL(u) {
-			workloadURL = u
-		}
 
 		out = append(out, deploymentView{
 			Name: d.Metadata.Name, Namespace: d.Metadata.Namespace,
 			Replicas: d.Spec.Replicas, Ready: d.Status.ReadyReplicas,
 			Containers: len(names), Running: running, ContainerNames: names,
-			WorkloadURL: workloadURL,
+			WorkloadURL: u,
 		})
 	}
 	return out, nil

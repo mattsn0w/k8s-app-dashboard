@@ -33,15 +33,24 @@ func TestListDeployments(t *testing.T) {
 		if r.Header.Get("Authorization") != "Bearer test-token" {
 			t.Errorf("auth = %q, want Bearer test-token", r.Header.Get("Authorization"))
 		}
+		// Both carry a valid workload-url so they pass the list filter.
 		resp := deploymentList{
 			Items: []deployment{
 				{
-					Metadata: struct { Name string `json:"name"`; Namespace string `json:"namespace"`; Annotations map[string]string `json:"annotations"` }{Name: "web", Namespace: "apps"},
+					Metadata: struct {
+						Name        string            `json:"name"`
+						Namespace   string            `json:"namespace"`
+						Annotations map[string]string `json:"annotations"`
+					}{Name: "web", Namespace: "apps", Annotations: map[string]string{"workload-url": "/web/"}},
 					Spec:   deploymentSpec{Replicas: 3},
 					Status: deploymentStatus{ReadyReplicas: 3, Replicas: 3},
 				},
 				{
-					Metadata: struct { Name string `json:"name"`; Namespace string `json:"namespace"`; Annotations map[string]string `json:"annotations"` }{Name: "api", Namespace: "apps"},
+					Metadata: struct {
+						Name        string            `json:"name"`
+						Namespace   string            `json:"namespace"`
+						Annotations map[string]string `json:"annotations"`
+					}{Name: "api", Namespace: "apps", Annotations: map[string]string{"workload-url": "/api/"}},
 					Spec:   deploymentSpec{Replicas: 1},
 					Status: deploymentStatus{ReadyReplicas: 0, Replicas: 1},
 				},
@@ -330,18 +339,31 @@ func TestUpsertUserSettings(t *testing.T) {
 // ---------- handleDeployments (HTTP handler) ----------
 
 func TestHandleDeployments(t *testing.T) {
+	// A deployment with a valid workload-url annotation, and one without.
+	// Only the annotated one should be returned by the handler.
+	withURL := deployment{
+		Metadata: struct {
+			Name        string            `json:"name"`
+			Namespace   string            `json:"namespace"`
+			Annotations map[string]string `json:"annotations"`
+		}{Name: "web", Namespace: "apps", Annotations: map[string]string{"workload-url": "/web/"}},
+		Spec:   deploymentSpec{Replicas: 1},
+		Status: deploymentStatus{ReadyReplicas: 1, Replicas: 1},
+	}
+	noURL := deployment{
+		Metadata: struct {
+			Name        string            `json:"name"`
+			Namespace   string            `json:"namespace"`
+			Annotations map[string]string `json:"annotations"`
+		}{Name: "internal", Namespace: "apps"},
+		Spec:   deploymentSpec{Replicas: 1},
+		Status: deploymentStatus{ReadyReplicas: 1, Replicas: 1},
+	}
+
 	c, server := newTestK8sClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		// This is the K8s API mock
 		if strings.Contains(r.URL.Path, "/deployments") {
-			resp := deploymentList{
-				Items: []deployment{
-					{
-						Metadata: struct { Name string `json:"name"`; Namespace string `json:"namespace"`; Annotations map[string]string `json:"annotations"` }{Name: "web", Namespace: "apps"},
-						Spec:   deploymentSpec{Replicas: 1},
-						Status: deploymentStatus{ReadyReplicas: 1, Replicas: 1},
-					},
-				},
-			}
+			resp := deploymentList{Items: []deployment{withURL, noURL}}
 			w.Header().Set("Content-Type", "application/json")
 			json.NewEncoder(w).Encode(resp)
 			return
@@ -363,7 +385,10 @@ func TestHandleDeployments(t *testing.T) {
 	}
 	body := rec.Body.String()
 	if !strings.Contains(body, "web") {
-		t.Errorf("body = %q, want contains web", body)
+		t.Errorf("body = %q, want contains web (workload-url annotated)", body)
+	}
+	if strings.Contains(body, "internal") {
+		t.Errorf("body = %q, want NOT contains internal (no workload-url annotation)", body)
 	}
 }
 
@@ -414,5 +439,3 @@ func TestHandleIndex_ServesEmbeddedUI(t *testing.T) {
 }
 
 // ---------- helper ----------
-
-
