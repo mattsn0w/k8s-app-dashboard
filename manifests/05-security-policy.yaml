@@ -1,0 +1,69 @@
+# Enforce authentication on the dashboard at the ingress layer (closes SEC-01
+# as WONT FIX in-app). This sits in front of the Gateway `eg` on the
+# apps01.co.slakin.net listener and makes every request authenticate via the
+# dex OIDC provider before reaching the deploy-dashboard Service.
+#
+# The app itself stays unauthenticated; identity is enforced here by the
+# Envoy Gateway `SecurityPolicy` (OIDC + JWT). See issues/SEC-01.
+#
+# NOTE: the client secret below is a dev value (apps01devsecret) for the
+# apps01-dev dex client. For anything beyond a lab, store a rotated secret in
+# a dedicated K8s Secret and reference it via `clientIDRef` / `clientSecret`
+# (the Secret must contain keys `client-id` and `client-secret`).
+#
+# --- 1. The dex client credentials (Opaque Secret) -----------------------
+apiVersion: v1
+kind: Secret
+metadata:
+  name: apps01-oidc-client
+  namespace: apps
+  labels:
+    app.kubernetes.io/name: deploy-dashboard
+type: Opaque
+stringData:
+  client-id: apps01-dev
+  client-secret: apps01devsecret
+---
+# --- 2. The SecurityPolicy: OIDC in front of the Gateway listener --------
+#
+# Targets the Gateway `eg` listener `http` in the `apps` namespace. The
+# redirect URL is pinned to match the dex client's registered redirectURI
+# (the default would be /oauth2/callback).
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: SecurityPolicy
+metadata:
+  name: apps01-oidc
+  namespace: apps
+  labels:
+    app.kubernetes.io/name: deploy-dashboard
+spec:
+  targetRef:
+    group: gateway.networking.k8s.io
+    kind: Gateway
+    name: eg
+    sectionName: http
+  oidc:
+    provider:
+      # dex OpenID provider. Endpoints (authorization, token, end-session)
+      # are auto-discovered from the well-known configuration:
+      #   https://dex.co.slakin.net/auth/.well-known/openid-configuration
+      # Must match the `issuer` value from dex's well-known config exactly
+      # (https://dex.co.slakin.net/auth/.well-known/openid-configuration):
+      #   "issuer": "https://dex.co.slakin.net/auth"
+      issuer: https://dex.co.slakin.net/auth
+    clientID: apps01-dev
+    clientSecret:
+      name: apps01-oidc-client
+    # Must match a redirectURI registered on the dex client.
+    redirectURL: http://apps01.co.slakin.net/callback
+    scopes:
+    - openid
+    - email
+    - profile
+    # Let non-browser clients (curl, kubectl port-forward, service-to-service)
+    # present `Authorization: Bearer <token>` and skip the redirect flow.
+    passThroughAuthHeader: true
+    # Auto-refresh the id/access tokens when they expire.
+    refreshToken: true
+    # Clear credential cookies at /logout.
+    logoutPath: /logout

@@ -9,14 +9,13 @@ import (
 	"bufio"
 	"bytes"
 	"context"
-	"strconv"
 	"crypto/sha1"
-	"flag"
 	"crypto/tls"
 	"crypto/x509"
 	"encoding/base64"
 	"encoding/binary"
 	"encoding/json"
+	"flag"
 	"fmt"
 	"io"
 	"log"
@@ -25,6 +24,8 @@ import (
 	"net/url"
 	"os"
 	"path/filepath"
+	"sort"
+	"strconv"
 	"strings"
 	"time"
 
@@ -32,10 +33,10 @@ import (
 )
 
 const (
-	tokenFile    = "/var/run/secrets/kubernetes.io/serviceaccount/token"
-	certFile     = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
-	defaultNS    = "default"
-	defaultPort  = ":8080"
+	tokenFile   = "/var/run/secrets/kubernetes.io/serviceaccount/token"
+	certFile    = "/var/run/secrets/kubernetes.io/serviceaccount/ca.crt"
+	defaultNS   = "default"
+	defaultPort = ":8080"
 )
 
 var (
@@ -190,8 +191,8 @@ type deploymentSpec struct {
 }
 
 type deploymentStatus struct {
-	Replicas       int32 `json:"replicas"`
-	ReadyReplicas  int32 `json:"readyReplicas"`
+	Replicas          int32 `json:"replicas"`
+	ReadyReplicas     int32 `json:"readyReplicas"`
 	AvailableReplicas int32 `json:"availableReplicas"`
 }
 
@@ -209,6 +210,11 @@ type deploymentList struct {
 	Items []deployment `json:"items"`
 }
 
+type nodeResource struct {
+	CPU    string `json:"cpu,omitempty"`    // cores or millicores, e.g. "2", "250m"
+	Memory string `json:"memory,omitempty"` // e.g. "8Gi", "1600Mi"
+}
+
 type node struct {
 	Metadata struct {
 		Name   string            `json:"name"`
@@ -222,11 +228,30 @@ type node struct {
 		NodeInfo struct {
 			KubeletVersion string `json:"kubeletVersion"`
 		} `json:"nodeInfo"`
+		Capacity    nodeResource `json:"capacity"`
+		Allocatable nodeResource `json:"allocatable"`
+		Usage       nodeResource `json:"usage"`
 	} `json:"status"`
 }
 
 type nodeList struct {
 	Items []node `json:"items"`
+}
+
+// nodeMetrics / nodeMetricsList mirror metrics.k8s.io/v1beta1 NodeMetrics.
+// CPU usage is reported in nanocores (e.g. "72213343n"); memory in Ki.
+type nodeMetrics struct {
+	Metadata struct {
+		Name string `json:"name"`
+	} `json:"metadata"`
+	Usage struct {
+		CPU    string `json:"cpu"`
+		Memory string `json:"memory"`
+	} `json:"usage"`
+}
+
+type nodeMetricsList struct {
+	Items []nodeMetrics `json:"items"`
 }
 
 // ---------- views ----------
@@ -691,33 +716,207 @@ func (c *k8sClient) handleLogs(w http.ResponseWriter, r *http.Request) {
 	c.streamLogs(w, r, pod, container)
 }
 
+// parseCPUQuantity converts a Kubernetes CPU quantity ("2", "250m", "0.5")
+// to a float number of cores. Returns -1 on parse failure.
+func parseCPUQuantity(q string) float64 {
+	q = strings.TrimSpace(q)
+	if q == "" {
+		return -1
+	}
+	if strings.HasSuffix(q, "m") {
+		v, err := strconv.ParseFloat(strings.TrimSuffix(q, "m"), 64)
+		if err != nil {
+			return -1
+		}
+		return v / 1000
+	}
+	v, err := strconv.ParseFloat(q, 64)
+	if err != nil {
+		return -1
+	}
+	return v
+}
+
+// parseMemQuantity converts a Kubernetes memory quantity ("8Gi", "1600Mi",
+// "1G", "512M", "1000") to a float number of bytes. Returns -1 on failure.
+func parseMemQuantity(q string) float64 {
+	q = strings.TrimSpace(q)
+	if q == "" {
+		return -1
+	}
+	// Find the leading numeric part (may include a decimal point).
+	i := 0
+	for i < len(q) && (q[i] >= '0' && q[i] <= '9' || q[i] == '.') {
+		i++
+	}
+	num, err := strconv.ParseFloat(q[:i], 64)
+	if err != nil {
+		return -1
+	}
+	unit := q[i:]
+	switch unit {
+	case "":
+		return num
+	case "Ki":
+		return num * 1024
+	case "Mi":
+		return num * 1024 * 1024
+	case "Gi":
+		return num * 1024 * 1024 * 1024
+	case "Ti":
+		return num * 1024 * 1024 * 1024 * 1024
+	case "Pi":
+		return num * 1024 * 1024 * 1024 * 1024 * 1024
+	case "K":
+		return num * 1e3
+	case "M":
+		return num * 1e6
+	case "G":
+		return num * 1e9
+	case "T":
+		return num * 1e12
+	case "P":
+		return num * 1e15
+	default:
+		return -1
+	}
+}
+
+// fmtMilliCores renders a millicore count for display (e.g. "1250m", "2.5k").
+func fmtMilliCores(m float64) string {
+	if m < 0 {
+		return "—"
+	}
+	if m >= 1000 {
+		return fmt.Sprintf("%.1fk", m/1000)
+	}
+	return fmt.Sprintf("%.0fm", m)
+}
+
+// fmtBytes renders a byte count in human form (e.g. "8 Gi", "1.5 Mi").
+func fmtBytes(b float64) string {
+	if b < 0 {
+		return "—"
+	}
+	units := []string{"B", "Ki", "Mi", "Gi", "Ti", "Pi"}
+	v := b
+	i := 0
+	for v >= 1024 && i < len(units)-1 {
+		v /= 1024
+		i++
+	}
+	if v >= 100 || i == 0 {
+		return fmt.Sprintf("%.0f %s", v, units[i])
+	}
+	return fmt.Sprintf("%.1f %s", v, units[i])
+}
+
+// parseNanoCPU converts a nanocore quantity ("72213343n", "100m", "1") to
+// millicores, as reported by the metrics server. Returns -1 on failure.
+func parseNanoCPU(q string) float64 {
+	q = strings.TrimSpace(q)
+	if q == "" {
+		return -1
+	}
+	switch {
+	case strings.HasSuffix(q, "n"):
+		v, err := strconv.ParseFloat(strings.TrimSuffix(q, "n"), 64)
+		if err != nil {
+			return -1
+		}
+		return v / 1e6
+	case strings.HasSuffix(q, "u"):
+		v, err := strconv.ParseFloat(strings.TrimSuffix(q, "u"), 64)
+		if err != nil {
+			return -1
+		}
+		return v / 1e3
+	case strings.HasSuffix(q, "m"):
+		v, err := strconv.ParseFloat(strings.TrimSuffix(q, "m"), 64)
+		if err != nil {
+			return -1
+		}
+		return v
+	default:
+		v, err := strconv.ParseFloat(q, 64)
+		if err != nil {
+			return -1
+		}
+		return v * 1000
+	}
+}
+
 func (c *k8sClient) handleNodes(w http.ResponseWriter, r *http.Request) {
 	var nl nodeList
 	if err := c.do(r.Context(), "GET", "/api/v1/nodes", nil, &nl); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	// Per-node usage from the metrics server. Non-fatal: if the metrics API is
+	// absent or forbidden, usage shows "—" while totals still render.
+	usage := map[string]nodeMetrics{}
+	var nml nodeMetricsList
+	if err := c.do(r.Context(), "GET", "/apis/metrics.k8s.io/v1beta1/nodes", nil, &nml); err == nil {
+		for _, m := range nml.Items {
+			usage[m.Metadata.Name] = m
+		}
+	}
+
 	out := []map[string]any{}
 	for _, n := range nl.Items {
 		roles := []string{}
 		for k, v := range n.Metadata.Labels {
-			if strings.HasPrefix(k, "node-role.kubernetes.io/") && v == "" {
+			// Role labels may be present with an empty value (""/true) or
+			// "true" (k3s). Accept both so control-plane/etcd are detected.
+			if strings.HasPrefix(k, "node-role.kubernetes.io/") && (v == "" || v == "true") {
 				roles = append(roles, strings.TrimPrefix(k, "node-role.kubernetes.io/"))
 			}
 		}
+		// Sort for stable display (map iteration is random).
+		sort.Strings(roles)
 		if len(roles) == 0 {
 			roles = append(roles, "worker")
 		}
+		// Map the Ready condition to a clean UI state. "True" -> Ready,
+		// "False" -> NotReady, anything else (or missing) -> Unknown.
 		ready := "Unknown"
 		for _, cond := range n.Status.Conditions {
 			if cond.Type == "Ready" {
-				ready = cond.Status
+				switch cond.Status {
+				case "True":
+					ready = "Ready"
+				case "False":
+					ready = "NotReady"
+				default:
+					ready = "Unknown"
+				}
 			}
+		}
+		// Totals from the Node's allocatable; usage from metrics (if present).
+		cpuTotal := parseCPUQuantity(n.Status.Allocatable.CPU) * 1000 // cores -> millicores
+		memTotal := parseMemQuantity(n.Status.Allocatable.Memory)     // bytes
+		var cpuUsed, memUsed float64 = -1, -1
+		if m, ok := usage[n.Metadata.Name]; ok {
+			cpuUsed = parseNanoCPU(m.Usage.CPU)        // millicores
+			memUsed = parseMemQuantity(m.Usage.Memory) // bytes
 		}
 		out = append(out, map[string]any{
 			"name": n.Metadata.Name, "status": ready,
-			"roles": strings.Join(roles, ","),
+			"roles":   strings.Join(roles, ","),
 			"version": n.Status.NodeInfo.KubeletVersion,
+			// Raw quantity strings (for tooltips / future detail views).
+			"capacity":    map[string]any{"cpu": n.Status.Capacity.CPU, "memory": n.Status.Capacity.Memory},
+			"allocatable": map[string]any{"cpu": n.Status.Allocatable.CPU, "memory": n.Status.Allocatable.Memory},
+			// Parsed numbers the UI plots (usage is -1 if metrics unavailable).
+			"cpuUsedM":     cpuUsed,
+			"cpuTotalM":    cpuTotal,
+			"memUsedB":     memUsed,
+			"memTotalB":    memTotal,
+			"cpuUsedDisp":  fmtMilliCores(cpuUsed),
+			"cpuTotalDisp": fmtMilliCores(cpuTotal),
+			"memUsedDisp":  fmtBytes(memUsed),
+			"memTotalDisp": fmtBytes(memTotal),
 		})
 	}
 	w.Header().Set("Content-Type", "application/json")
@@ -754,7 +953,6 @@ func (c *k8sClient) handleIndex(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Write(b)
 }
-
 
 // ---------- WebSocket log streaming ----------
 
@@ -1029,7 +1227,6 @@ func wsReadFrame(rw *bufio.ReadWriter) (byte, []byte, error) {
 	}
 	return opcode, payload, nil
 }
-
 
 // wsWriteFrameConn writes a WebSocket frame directly to the conn.
 func wsWriteFrameConn(conn net.Conn, opcode byte, data []byte) error {

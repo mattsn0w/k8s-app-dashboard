@@ -66,6 +66,29 @@ function targetReplicas(d, run) {
   return 0;
 }
 
+// ---------- Node ready state (pure logic) ----------
+
+// Mirrors the SPA's ready-dot color mapping.
+function readyColor(status) {
+  if (status === 'Ready') return 'success';
+  if (status === 'NotReady') return 'attention';
+  return 'danger'; // Unknown / anything else
+}
+
+// ---------- Node resource bars (pure logic) ----------
+
+// Mirrors levelClass in the SPA: utilization -> CSS level.
+function levelClass(pct) {
+  if (pct >= 0.9) return 'crit';
+  if (pct >= 0.7) return 'warn';
+  return 'ok';
+}
+// Mirrors resBar's width computation (returns a 0..100 number).
+function barWidth(used, total) {
+  if (!(total > 0) || used < 0) return 0;
+  return Math.min(1, Math.max(0, used / total)) * 100;
+}
+
 // ---------- Tests ----------
 
 let passed = 0;
@@ -164,6 +187,28 @@ assertEq(deploymentStatus({ ready: 1, replicas: 3 }), 'degraded', 'partially rea
 assertEq(targetReplicas({ replicas: 3 }, true), 3, 'scale up keeps replicas');
 assertEq(targetReplicas({ replicas: 0 }, true), 1, 'scale up from 0 -> 1');
 assertEq(targetReplicas({ replicas: 3 }, false), 0, 'scale down -> 0');
+
+// --- Node bar logic tests ---
+console.log('Node bars:');
+assertEq(levelClass(0.2), 'ok', 'low -> ok');
+assertEq(levelClass(0.69), 'ok', 'just under warn -> ok');
+assertEq(levelClass(0.7), 'warn', 'warn threshold -> warn');
+assertEq(levelClass(0.89), 'warn', 'high -> warn');
+assertEq(levelClass(0.9), 'crit', 'crit threshold -> crit');
+assertEq(levelClass(1.0), 'crit', 'full -> crit');
+
+assertEq(barWidth(500, 2000), 25, '500/2000 = 25%');
+assertEq(barWidth(2000, 2000), 100, 'full = 100%');
+assertEq(barWidth(3000, 2000), 100, 'clamped to 100%');
+assertEq(barWidth(-1, 2000), 0, 'unknown used -> 0%');
+assertEq(barWidth(500, 0), 0, 'zero total -> 0%');
+
+// --- Node ready color tests ---
+console.log('Node ready:');
+assertEq(readyColor('Ready'), 'success', 'Ready -> green');
+assertEq(readyColor('NotReady'), 'attention', 'NotReady -> yellow');
+assertEq(readyColor('Unknown'), 'danger', 'Unknown -> red');
+assertEq(readyColor(''), 'danger', 'empty -> red');
 
 // --- Summary ---
 console.log(`\n${passed} passed, ${failed} failed`);

@@ -85,6 +85,25 @@ tr:hover td{background:var(--bgColor-attentive)}
 ::-webkit-scrollbar-thumb{background:var(--borderColor-default);border-radius:4px}
 ::-webkit-scrollbar-thumb:hover{background:var(--fgColor-muted)}
 @media(max-width:768px){.actions-cell{flex-direction:column}.app-header{padding:.75rem 1rem}main{padding:1rem}}
+/* Tabs */
+.tabs{display:flex;gap:.25rem;border-bottom:1px solid var(--borderColor-default);margin-bottom:1rem}
+.tab{appearance:none;background:none;border:none;cursor:pointer;font-family:inherit;font-size:.8rem;font-weight:600;color:var(--fgColor-muted);padding:.5rem 1rem;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .1s,border-color .1s;display:inline-flex;align-items:center;gap:.4rem}
+.tab:hover{color:var(--fgColor-default)}
+.tab.active{color:var(--fgColor-accent);border-bottom-color:var(--fgColor-accent)}
+.tab .tab-count{font-size:.65rem;font-weight:600;color:var(--fgColor-muted);background:var(--bgColor-muted);border:1px solid var(--borderColor-muted);border-radius:2em;padding:0 .45em;line-height:1.4}
+.tab.active .tab-count{color:var(--fgColor-accent);border-color:var(--borderColor-accent)}
+.tab-panel{display:none}
+.tab-panel.active{display:block}
+/* Resource bars (node CPU / memory) */
+.res-cell{min-width:230px}
+.res-bar{position:relative;height:8px;border-radius:4px;background:var(--bgColor-inset);border:1px solid var(--borderColor-muted);overflow:hidden;margin-bottom:.3rem}
+.res-fill{position:absolute;top:0;left:0;bottom:0;border-radius:4px 0 0 4px;transition:width .3s}
+.res-fill.ok{background:var(--fgColor-success)}
+.res-fill.warn{background:var(--fgColor-attention)}
+.res-fill.crit{background:var(--fgColor-danger)}
+.res-label{display:flex;justify-content:space-between;gap:.5rem;font-size:.68rem;color:var(--fgColor-muted);font-variant-numeric:tabular-nums;white-space:nowrap}
+.res-label b{color:var(--fgColor-default);font-weight:600}
+.node-role{display:inline-block;font-size:.65rem;color:var(--fgColor-muted);background:var(--bgColor-muted);border:1px solid var(--borderColor-muted);border-radius:2em;padding:.1rem .5rem;margin-top:.25rem}
 </style>
 </head>
 <body>
@@ -140,20 +159,50 @@ tr:hover td{background:var(--bgColor-attentive)}
 </header>
 
 <main>
-  <div class="section-title">Deployments</div>
-  <div class="table-wrap">
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Status</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
-      <tbody id="deploymentsBody">
-        <tr><td colspan="3" class="loading"><div class="spinner"></div><div>Loading deployments…</div></td></tr>
-      </tbody>
-    </table>
+  <div class="tabs" role="tablist">
+    <button class="tab active" id="tab-deployments" role="tab" aria-selected="true" onclick="switchTab('deployments')">
+      Deployments <span class="tab-count" id="deployCount">–</span>
+    </button>
+    <button class="tab" id="tab-nodes" role="tab" aria-selected="false" onclick="switchTab('nodes')">
+      <svg class="octicon" width="16" height="16"><use href="#octicon-pulse"/></svg>
+      Cluster Nodes <span class="tab-count" id="nodeCount">–</span>
+    </button>
+  </div>
+
+  <!-- Deployments panel -->
+  <div class="tab-panel active" id="panel-deployments">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="deploymentsBody">
+          <tr><td colspan="3" class="loading"><div class="spinner"></div><div>Loading deployments…</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Cluster Nodes panel -->
+  <div class="tab-panel" id="panel-nodes">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>CPU</th>
+            <th>Memory</th>
+          </tr>
+        </thead>
+        <tbody id="nodesBody">
+          <tr><td colspan="3" class="loading"><div class="spinner"></div><div>Loading nodes…</div></td></tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 </main>
 
@@ -250,6 +299,8 @@ let logWS = null;
 
 function renderDeployments() {
   const tbody = document.getElementById('deploymentsBody');
+  const dc = document.getElementById('deployCount');
+  if (dc) dc.textContent = deployments.length;
   if (deployments.length === 0) {
     tbody.innerHTML = `<tr><td colspan="3" class="empty-state">
       <svg class="octicon" width="32" height="32"><use href="#octicon-cloud"/></svg>
@@ -430,6 +481,86 @@ async function fetchDeployments() {
       </td></tr>`;
   }
 }
+// ---------- Tabs ----------
+function switchTab(name) {
+  const panels = { deployments: 'panel-deployments', nodes: 'panel-nodes' };
+  const tabs = { deployments: 'tab-deployments', nodes: 'tab-nodes' };
+  for (const key of Object.keys(panels)) {
+    const active = key === name;
+    document.getElementById(panels[key]).classList.toggle('active', active);
+    const tab = document.getElementById(tabs[key]);
+    tab.classList.toggle('active', active);
+    tab.setAttribute('aria-selected', active ? 'true' : 'false');
+  }
+}
+
+// ---------- Cluster nodes ----------
+let nodes = [];
+
+// pct in [0,1]; returns a CSS level class based on utilization.
+function levelClass(pct) {
+  if (pct >= 0.9) return 'crit';
+  if (pct >= 0.7) return 'warn';
+  return 'ok';
+}
+// Build one utilization bar. usedDisp/totalDisp are pre-formatted strings from
+// the backend; used/total are raw numbers used to compute the fill width.
+function resBar(used, total, usedDisp, totalDisp, unit) {
+  const ok = total > 0 && used >= 0;
+  const pct = ok ? Math.min(1, Math.max(0, used / total)) : 0;
+  const width = (pct * 100).toFixed(1);
+  if (!ok) return `<div class="res-label">—</div>`;
+  return `
+    <div class="res-bar"><div class="res-fill ${levelClass(pct)}" style="width:${width}%"></div></div>
+    <div class="res-label"><b>${usedDisp}</b> / ${totalDisp} ${unit} <span>${(pct*100).toFixed(0)}%</span></div>`;
+}
+
+function renderNodes() {
+  const tbody = document.getElementById('nodesBody');
+  const count = document.getElementById('nodeCount');
+  if (count) count.textContent = nodes.length;
+  if (nodes.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="3" class="empty-state">
+      <svg class="octicon" width="32" height="32"><use href="#octicon-cloud"/></svg>
+      <div>No nodes found in this cluster.</div>
+    </td></tr>`;
+    return;
+  }
+  tbody.innerHTML = nodes.map(n => {
+    const roles = (n.roles || 'worker').split(',').join(' ');
+    // Ready state -> dot color: green Ready, yellow NotReady, red Unknown.
+    const readyDot = n.status === 'Ready' ? 'var(--fgColor-success)'
+      : n.status === 'NotReady' ? 'var(--fgColor-attention)'
+      : 'var(--fgColor-danger)';
+    const hasCpu = n.cpuTotalM > 0 && n.cpuUsedM >= 0;
+    const hasMem = n.memTotalB > 0 && n.memUsedB >= 0;
+    return `
+      <tr>
+        <td>
+          <div class="name-cell-inner">
+            <span class="name-cell" title="${n.name}">${n.name}</span>
+            <svg class="octicon" width="12" height="12" style="fill:${readyDot}" aria-label="${n.status}"><use href="#octicon-check-circle"/></svg>
+          </div>
+          <span class="node-role">${roles}</span>
+        </td>
+        <td class="res-cell">${hasCpu ? resBar(n.cpuUsedM, n.cpuTotalM, n.cpuUsedDisp, n.cpuTotalDisp, 'millicores') : '<div class="res-label">—</div>'}</td>
+        <td class="res-cell">${hasMem ? resBar(n.memUsedB, n.memTotalB, n.memUsedDisp, n.memTotalDisp, 'RAM') : '<div class="res-label">—</div>'}</td>
+      </tr>`;
+  }).join('');
+}
+
+async function fetchNodes() {
+  try {
+    nodes = await api('api/nodes');
+    renderNodes();
+  } catch (err) {
+    document.getElementById('nodesBody').innerHTML =
+      `<tr><td colspan="3" class="empty-state">
+        <svg class="octicon" width="32" height="32"><use href="#octicon-alert"/></svg>
+        <div>Failed to load nodes: ${err.message}</div>
+      </td></tr>`;
+  }
+}
 
 function toggleUserMenu() { document.getElementById('userMenu').classList.toggle('open'); }
 document.addEventListener('click', e => { if (!e.target.closest('.user-menu-wrap')) document.getElementById('userMenu').classList.remove('open'); });
@@ -485,7 +616,8 @@ async function saveTokens() {
 }
 
 fetchDeployments();
-setInterval(() => { fetchDeployments(); }, 10000);
+fetchNodes();
+setInterval(() => { fetchDeployments(); fetchNodes(); }, 10000);
 </script>
 </body>
 </html>
