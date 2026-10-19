@@ -37,9 +37,9 @@ Each issue is a single markdown file in this directory, capturing **type**, **su
 ### Anti-patterns (APP)
 | ID | Title | Severity | Effort |
 |---|---|---|---|
-| APP-01 | Stale embed_gen.go — two sources of truth for the UI | Medium | Low |
-| APP-02 | Dashboard runs as a raw Pod, not a Deployment | Medium | Low |
-| APP-03 | No readiness or liveness probes | Medium | Low |
+| APP-01 | Stale embed_gen.go — two sources of truth for the UI | Medium | Low | ✅ FIXED |
+| APP-02 | Dashboard runs as a raw Pod, not a Deployment | Medium | Low | ✅ FIXED |
+| APP-03 | No readiness or liveness probes | Medium | Low | ✅ FIXED |
 | APP-04 | NodePort / port 31143 hard-coded | Low | Low |
 | APP-05 | No rate limiting on any endpoint | Medium | Medium |
 | APP-06 | No server-level request timeouts | Medium | Low |
