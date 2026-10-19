@@ -1,6 +1,7 @@
 package main
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"net/http"
@@ -384,8 +385,18 @@ func TestHandleHealthz(t *testing.T) {
 
 // ---------- handleIndex ----------
 
-func TestHandleIndex(t *testing.T) {
-	embeddedHTML = "<html>test</html>"
+// TestHandleIndex_ServesEmbeddedUI verifies the index handler serves the
+// frontend that is compiled into the binary via //go:embed (web/index.html).
+func TestHandleIndex_ServesEmbeddedUI(t *testing.T) {
+	// Sanity: the embed must contain the real UI.
+	embedded, err := webFS.ReadFile("web/index.html")
+	if err != nil {
+		t.Fatalf("embedded web/index.html not found in build: %v", err)
+	}
+	if !bytes.Contains(embedded, []byte("Devpod")) {
+		t.Fatalf("embedded UI does not look like the Devpod dashboard (missing \"Devpod\")")
+	}
+
 	c, _ := newTestK8sClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
 	req := httptest.NewRequest("GET", "/", nil)
 	rec := httptest.NewRecorder()
@@ -397,23 +408,8 @@ func TestHandleIndex(t *testing.T) {
 	if ct := rec.Header().Get("Content-Type"); !strings.HasPrefix(ct, "text/html") {
 		t.Errorf("Content-Type = %q, want text/html", ct)
 	}
-	if body := rec.Body.String(); body != "<html>test</html>" {
-		t.Errorf("body = %q, want <html>test</html>", body)
-	}
-}
-
-// ---------- handleIndex fallback to embeddedHTML ----------
-
-func TestHandleIndex_EmptyEmbeddedHTML(t *testing.T) {
-	embeddedHTML = ""
-	c, _ := newTestK8sClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
-	req := httptest.NewRequest("GET", "/", nil)
-	rec := httptest.NewRecorder()
-	c.handleIndex(rec, req)
-
-	// When embeddedHTML is empty, handleIndex returns 404
-	if rec.Code != 404 {
-		t.Fatalf("status = %d, want 404", rec.Code)
+	if body := rec.Body.String(); body != string(embedded) {
+		t.Errorf("served body does not match embedded web/index.html")
 	}
 }
 

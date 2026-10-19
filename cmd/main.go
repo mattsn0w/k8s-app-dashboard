@@ -27,6 +27,8 @@ import (
 	"path/filepath"
 	"strings"
 	"time"
+
+	"deploy-dashboard"
 )
 
 const (
@@ -727,17 +729,24 @@ func (c *k8sClient) handleHealthz(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte("ok"))
 }
 
-// embeddedHTML is the single-page app, embedded at build time.
-var embeddedHTML string
+// webFS holds the single-page app, embedded at build time so the binary is
+// self-contained. It is the single source of truth for the UI: edit
+// web/index.html and rebuild -- no codegen or env var required. The actual
+// //go:embed directive lives at the module root (embed.go) because Go cannot
+// embed files outside the declaring package's directory tree.
+var webFS = deploydashboard.WebFS
 
 func (c *k8sClient) handleIndex(w http.ResponseWriter, r *http.Request) {
-	if embeddedHTML != "" {
+	// Serve the UI embedded at build time (see webFS above).
+	b, err := webFS.ReadFile("web/index.html")
+	if err == nil {
 		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-		w.Write([]byte(embeddedHTML))
+		w.Write(b)
 		return
 	}
-	// Fallback: try to read from disk (for local dev).
-	b, err := os.ReadFile(filepath.Join("web", "index.html"))
+	// Fallback: try to read from disk (for local dev, when running outside
+	// the module tree where //go:embed could not pick the file up).
+	b, err = os.ReadFile(filepath.Join("web", "index.html"))
 	if err != nil {
 		http.Error(w, "index.html not found", http.StatusNotFound)
 		return
@@ -1103,18 +1112,6 @@ func wsReadFrameReader(r io.Reader) (byte, []byte, error) {
 
 func main() {
 	flag.Parse()
-
-	// If EMBEDDED_HTML env var is set, use it (for build-time embedding).
-	// Supports both raw HTML and base64-encoded HTML.
-	if html := os.Getenv("EMBEDDED_HTML"); html != "" {
-		// Try base64 decode first
-		if decoded, err := base64.StdEncoding.DecodeString(html); err == nil {
-			embeddedHTML = string(decoded)
-		} else {
-			// Use as raw HTML
-			embeddedHTML = html
-		}
-	}
 
 	c, err := newK8sClient()
 	if err != nil {

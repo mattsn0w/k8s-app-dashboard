@@ -5,9 +5,9 @@
 #   ./build-and-deploy.sh [kubeconfig-path]
 #
 # This script:
-#   1. Builds a static Go binary
-#   2. Creates the ConfigMap with the base64-encoded HTML
-#   3. Creates the Pod with the binary
+#   1. Builds a static Go binary (the UI is embedded in the binary)
+#   2. Creates the Pod
+#   3. Copies the binary in
 #   4. Verifies the deployment
 set -euo pipefail
 
@@ -22,20 +22,7 @@ CGO_ENABLED=0 go build -ldflags="-s -w -extldflags=-static" -o /tmp/deploy-dashb
 echo "Binary: $(ls -lh /tmp/deploy-dashboard-static | awk '{print $5}')"
 
 echo ""
-echo "=== 2. Create ConfigMap with HTML ==="
-HTML_B64=$(base64 -w0 web/index.html)
-kubectl apply -f - <<EOF
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: dashboard-html
-  namespace: $NS
-data:
-  index.html.b64: "$HTML_B64"
-EOF
-
-echo ""
-echo "=== 3. Create Pod ==="
+echo "=== 2. Create Pod ==="
 kubectl apply -f - <<EOF
 apiVersion: v1
 kind: Pod
@@ -59,12 +46,6 @@ spec:
       chmod +x /app/deploy-dashboard
       echo "Starting deploy-dashboard..."
       exec /app/deploy-dashboard --listen=:8080 --namespace=$NS
-    env:
-    - name: EMBEDDED_HTML
-      valueFrom:
-        configMapKeyRef:
-          name: dashboard-html
-          key: index.html.b64
     volumeMounts:
     - name: app
       mountPath: /app
@@ -78,20 +59,24 @@ spec:
 EOF
 
 echo ""
-echo "=== 4. Wait for Pod ==="
+echo "=== 3. Wait for Pod ==="
 kubectl wait --for=condition=Ready pod/$POD_NAME -n "$NS" --timeout=60s
 
 echo ""
-echo "=== 5. Copy binary ==="
-kubectl cp /tmp/deploy-dashboard-static "$NS/$POD_NAME:/app/deploy-dashboard"
+echo "=== 4. Copy binary ==="
+# Pipe a tar stream through kubectl exec. `kubectl cp` frequently breaks on
+# large binaries ("broken pipe"); a tar stream is reliable.
+tar cf - /tmp/deploy-dashboard-static | kubectl exec -i -n "$NS" "$POD_NAME" -- tar xf - -C /tmp/
+kubectl exec -n "$NS" "$POD_NAME" -- mv /tmp/deploy-dashboard-static /app/deploy-dashboard
+kubectl exec -n "$NS" "$POD_NAME" -- chmod +x /app/deploy-dashboard
 
 echo ""
-echo "=== 6. Verify ==="
+echo "=== 5. Verify ==="
 sleep 5
 kubectl logs -n "$NS" "$POD_NAME" --tail=5
 
 echo ""
-echo "=== 7. Test ==="
+echo "=== 6. Test ==="
 # Port-forward and test
 kubectl port-forward -n "$NS" "pod/$POD_NAME" 8080:8080 &
 PF_PID=$!

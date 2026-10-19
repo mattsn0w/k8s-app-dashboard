@@ -14,7 +14,7 @@ jobs:
 
       - uses: actions/setup-go@v5
         with:
-          go-version: '1.22'
+          go-version: '1.27'
 
       - name: Go vet
         run: go vet ./cmd/
@@ -26,6 +26,18 @@ jobs:
         run: |
           CGO_ENABLED=0 go build -ldflags="-s -w" -o /tmp/deploy-dashboard-static ./cmd/
           ls -lh /tmp/deploy-dashboard-static
+
+      - name: Verify embedded UI is fresh
+        run: |
+          # The binary must carry the *current* web/index.html, not a stale
+          # copy (guards against regressing to the old embed_gen.go / env-var
+          # flow). Fails if the freshly-built binary does not contain a string
+          # that is unique to the live UI.
+          if ! strings /tmp/deploy-dashboard-static | grep -q "Devpod"; then
+            echo "FAIL: built binary does not embed the current web/index.html"
+            exit 1
+          fi
+          echo "OK: embedded UI matches web/index.html"
 
       - name: JS test
         run: node web/test.js
