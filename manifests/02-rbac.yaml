@@ -28,6 +28,10 @@ rules:
 - apiGroups: ["apps"]
   resources: ["deployments"]
   verbs: ["create", "delete"]
+# Kubernetes Jobs for the Jobs tab (list + read; job pods are covered by the pods rule).
+- apiGroups: ["batch"]
+  resources: ["jobs"]
+  verbs: ["get", "list", "watch"]
 # Per-node CPU/memory usage for the Nodes tab. Only exposed if the metrics
 # server (metrics.k8s.io) is installed; the app degrades to "—" otherwise.
 - apiGroups: ["metrics.k8s.io"]

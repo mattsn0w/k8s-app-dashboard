@@ -180,6 +180,39 @@ type podList struct {
 	Items []pod `json:"items"`
 }
 
+// job mirrors batch/v1 Job (the subset we render).
+type job struct {
+	Metadata struct {
+		Name      string            `json:"name"`
+		Namespace string            `json:"namespace"`
+		Labels    map[string]string `json:"labels"`
+	} `json:"metadata"`
+	Spec struct {
+		// Job controller sets these; useful for display.
+		BackoffLimit int32  `json:"backoffLimit"`
+		Completions  *int32 `json:"completions"`
+		Parallelism  *int32 `json:"parallelism"`
+	} `json:"spec"`
+	Status struct {
+		Succeeded      int32          `json:"succeeded"`
+		Failed         int32          `json:"failed"`
+		Active         int32          `json:"active"`
+		StartTime      *string        `json:"startTime"`
+		CompletionTime *string        `json:"completionTime"`
+		Conditions     []jobCondition `json:"conditions"`
+	} `json:"status"`
+}
+
+type jobCondition struct {
+	Type   string `json:"type"`
+	Status string `json:"status"`
+	Reason string `json:"reason"`
+}
+
+type jobList struct {
+	Items []job `json:"items"`
+}
+
 type deploymentSpec struct {
 	Replicas int32 `json:"replicas"`
 	Selector struct {
@@ -337,21 +370,11 @@ func (c *k8sClient) listDeployments(ctx context.Context) ([]deploymentView, erro
 	return out, nil
 }
 
-func (c *k8sClient) listPodsForDeployment(ctx context.Context, name string) ([]podView, error) {
-	// First get the deployment to find its selector.
-	var d deployment
-	if err := c.do(ctx, "GET", "/apis/apps/v1/namespaces/"+*namespace+"/deployments/"+name, nil, &d); err != nil {
-		return nil, err
-	}
-	// Build label selector from matchLabels.
-	parts := []string{}
-	for k, v := range d.Spec.Selector.MatchLabels {
-		parts = append(parts, k+"="+v)
-	}
-	sel := strings.Join(parts, ",")
-
+// listPodsByLabels lists pods in the watched namespace matching a label
+// selector. Shared by deployment and job views.
+func (c *k8sClient) listPodsByLabels(ctx context.Context, selector string) ([]podView, error) {
+	path := "/api/v1/namespaces/" + *namespace + "/pods?labelSelector=" + url.QueryEscape(selector)
 	var pl podList
-	path := "/api/v1/namespaces/" + *namespace + "/pods?labelSelector=" + url.QueryEscape(sel)
 	if err := c.do(ctx, "GET", path, nil, &pl); err != nil {
 		return nil, err
 	}
@@ -370,6 +393,121 @@ func (c *k8sClient) listPodsForDeployment(ctx context.Context, name string) ([]p
 		out = append(out, podView{Name: p.Metadata.Name, Ready: ready, Containers: cn})
 	}
 	return out, nil
+}
+
+func (c *k8sClient) listPodsForDeployment(ctx context.Context, name string) ([]podView, error) {
+	var d deployment
+	if err := c.do(ctx, "GET", "/apis/apps/v1/namespaces/"+*namespace+"/deployments/"+name, nil, &d); err != nil {
+		return nil, err
+	}
+	parts := []string{}
+	for k, v := range d.Spec.Selector.MatchLabels {
+		parts = append(parts, k+"="+v)
+	}
+	return c.listPodsByLabels(ctx, strings.Join(parts, ","))
+}
+
+// jobView is the serialized shape for /api/jobs.
+type jobView struct {
+	Name      string `json:"name"`
+	Namespace string `json:"namespace"`
+	Status    string `json:"status"` // succeeded|pending|running|failed
+	Succeeded int32  `json:"succeeded"`
+	Failed    int32  `json:"failed"`
+	Active    int32  `json:"active"`
+	// Pod to stream logs for (the most relevant job pod), and its container.
+	Pod        string   `json:"pod,omitempty"`
+	Container  string   `json:"container,omitempty"`
+	Containers []string `json:"containers,omitempty"`
+	StartTime  string   `json:"startTime,omitempty"`
+	EndTime    string   `json:"endTime,omitempty"`
+}
+
+// jobStatusOf derives a UI status from a Job: succeeded, pending, running,
+// or failed. Matches the requested color mapping:
+//
+//	succeeded -> green, pending -> yellow, running -> blue, failed -> red.
+func jobStatusOf(j job) string {
+	for _, c := range j.Status.Conditions {
+		switch c.Type {
+		case "Complete":
+			if c.Status == "True" {
+				return "succeeded"
+			}
+		case "Failed":
+			if c.Status == "True" {
+				return "failed"
+			}
+		}
+	}
+	// No terminal condition yet.
+	if j.Status.Active > 0 {
+		return "running"
+	}
+	if j.Status.Failed > 0 && j.Status.Succeeded == 0 {
+		return "failed"
+	}
+	if j.Status.Succeeded > 0 && j.Status.Failed == 0 {
+		return "succeeded"
+	}
+	return "pending"
+}
+
+func (c *k8sClient) listJobs(ctx context.Context) ([]jobView, error) {
+	var jl jobList
+	if err := c.do(ctx, "GET", "/apis/batch/v1/namespaces/"+*namespace+"/jobs", nil, &jl); err != nil {
+		return nil, err
+	}
+	out := make([]jobView, 0, len(jl.Items))
+	for _, j := range jl.Items {
+		v := jobView{
+			Name:      j.Metadata.Name,
+			Namespace: j.Metadata.Namespace,
+			Status:    jobStatusOf(j),
+			Succeeded: j.Status.Succeeded,
+			Failed:    j.Status.Failed,
+			Active:    j.Status.Active,
+		}
+		if j.Status.StartTime != nil {
+			v.StartTime = *j.Status.StartTime
+		}
+		if j.Status.CompletionTime != nil {
+			v.EndTime = *j.Status.CompletionTime
+		}
+
+		// Find the job's pod(s) to stream output from. Job pods carry the
+		// label batch.kubernetes.io/job-name=<jobName>.
+		pods, err := c.listPodsByLabels(ctx, "batch.kubernetes.io/job-name="+url.QueryEscape(j.Metadata.Name))
+		if err == nil && len(pods) > 0 {
+			// Prefer a pod that has actually run or is running.
+			pick := pods[0]
+			for _, p := range pods {
+				if p.Ready {
+					pick = p
+					break
+				}
+			}
+			v.Pod = pick.Name
+			if len(pick.Containers) > 0 {
+				v.Container = pick.Containers[0]
+			}
+			v.Containers = pick.Containers
+		}
+		out = append(out, v)
+	}
+	// Stable order: name.
+	sort.Slice(out, func(i, j int) bool { return out[i].Name < out[j].Name })
+	return out, nil
+}
+
+func (c *k8sClient) handleJobs(w http.ResponseWriter, r *http.Request) {
+	jobs, err := c.listJobs(r.Context())
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	json.NewEncoder(w).Encode(jobs)
 }
 
 func (c *k8sClient) scaleDeployment(ctx context.Context, name string, replicas int32) error {
@@ -1322,6 +1460,7 @@ func main() {
 	mux.HandleFunc("/", c.handleIndex)
 	mux.HandleFunc("/healthz", c.handleHealthz)
 	mux.HandleFunc("/api/deployments", c.handleDeployments)
+	mux.HandleFunc("/api/jobs", c.handleJobs)
 	mux.HandleFunc("/api/pods", c.handlePods)
 	mux.HandleFunc("/api/scale", c.handleScale)
 	mux.HandleFunc("/api/kill-pods", c.handleKillPods)

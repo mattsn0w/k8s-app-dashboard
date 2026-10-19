@@ -51,6 +51,11 @@ tr:hover td{background:var(--bgColor-attentive)}
 .status-badge .octicon{width:12px;height:12px}
 .status-badge.success{background:color-mix(in srgb,var(--fgColor-success) 20%,transparent);color:var(--fgColor-success);border:1px solid var(--borderColor-success)}
 .status-badge.stopped{background:var(--bgColor-muted);color:var(--fgColor-muted);border:1px solid var(--borderColor-muted)}
+.status-badge.pending{background:color-mix(in srgb,var(--fgColor-attention) 20%,transparent);color:var(--fgColor-attention);border:1px solid var(--borderColor-attention)}
+.status-badge.running{background:color-mix(in srgb,var(--fgColor-accent) 22%,transparent);color:var(--fgColor-accent);border:1px solid var(--borderColor-accent)}
+.status-badge.failed{background:color-mix(in srgb,var(--fgColor-danger) 20%,transparent);color:var(--fgColor-danger);border:1px solid var(--borderColor-danger)}
+/* Job status dot (used inline in the name cell next to the job name). */
+.job-dot{display:inline-block;width:10px;height:10px;border-radius:50%;flex:none}
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
 .modal-overlay.open{display:flex}
 .modal{background:var(--bgColor-overlay);border:1px solid var(--borderColor-default);border-radius:6px;width:90%;max-width:800px;max-height:80vh;display:flex;flex-direction:column;box-shadow:var(--shadow-lg)}
@@ -121,7 +126,7 @@ tr:hover td{background:var(--bgColor-attentive)}
 <symbol id="octicon-info" viewBox="0 0 16 16"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/></symbol>
 <symbol id="octicon-alert" viewBox="0 0 16 16"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></symbol>
 <symbol id="octicon-check-circle" viewBox="0 0 16 16"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm1.5 0a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm10.28-1.72-4.5 4.5a.75.75 0 0 1-1.06 0l-2-2a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l1.47 1.47 3.97-3.97a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042Z"/></symbol>
-<symbol id="octicon-cloud" viewBox="0 0 24 24"><path d="M3.103 10.107c0-4.244 3.445-7.607 7.733-7.607 3.19 0 5.912 1.858 7.099 4.563l.01.022.001.006C21.348 7.345 24 10.095 24 13.536 24 17.148 21.076 20 17.431 20H5.017C2.23 20 0 17.83 0 15.06a4.899 4.899 0 0 1 3.112-4.581 7.696 7.696 0 0 1-.009-.372ZM10.836 4c-3.485 0-6.233 2.717-6.233 6.107 0 .284.022.602.052.756a.75.75 0 0 1-.552.869c-1.52.385-2.603 1.712-2.603 3.328 0 1.917 1.532 3.44 3.517 3.44h12.414c2.843 0 5.069-2.206 5.069-4.964 0-2.759-2.226-4.965-5.069-4.965a.75.75 0 0 1-.696-.47l-.179-.446C15.606 5.5 13.424 4 10.836 4Z"/></symbol>
+<symbol id="octicon-beaker" viewBox="0 0 24 24"><path d="M19 3H5c-.55 0-1 .45-1 1v2.5c0 .41.24.77.6.95l8.24 4.45-3.44 6.07c-.31.55.1 1.2.7 1.2H16c.28 0 .52-.16.65-.4l2.6-5.6c.13-.28.13-.6 0-.88l-3-5.6c-.13-.28-.43-.4-.65-.4h-4.9l-5.1-2.77V4h14.2c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1Z"/></symbol><symbol id="octicon-cloud" viewBox="0 0 24 24"><path d="M3.103 10.107c0-4.244 3.445-7.607 7.733-7.607 3.19 0 5.912 1.858 7.099 4.563l.01.022.001.006C21.348 7.345 24 10.095 24 13.536 24 17.148 21.076 20 17.431 20H5.017C2.23 20 0 17.83 0 15.06a4.899 4.899 0 0 1 3.112-4.581 7.696 7.696 0 0 1-.009-.372ZM10.836 4c-3.485 0-6.233 2.717-6.233 6.107 0 .284.022.602.052.756a.75.75 0 0 1-.552.869c-1.52.385-2.603 1.712-2.603 3.328 0 1.917 1.532 3.44 3.517 3.44h12.414c2.843 0 5.069-2.206 5.069-4.964 0-2.759-2.226-4.965-5.069-4.965a.75.75 0 0 1-.696-.47l-.179-.446C15.606 5.5 13.424 4 10.836 4Z"/></symbol>
 <symbol id="octicon-link-external" viewBox="0 0 16 16"><path d="M3.75 2h3.5a.75.75 0 0 1 0 1.5h-3.5a.25.25 0 0 0-.25.25v8.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25v-3.5a.75.75 0 0 1 1.5 0v3.5A1.75 1.75 0 0 1 12.25 14h-8.5A1.75 1.75 0 0 1 2 12.25v-8.5C2 2.784 2.784 2 3.75 2Zm6.854-1h4.146a.25.25 0 0 1 .25.25v4.146a.25.25 0 0 1-.427.177L13.03 4.03 9.28 7.78a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l3.75-3.75-1.543-1.543A.25.25 0 0 1 10.604 1Z"/></symbol>
 </svg>
 
@@ -163,6 +168,10 @@ tr:hover td{background:var(--bgColor-attentive)}
     <button class="tab active" id="tab-deployments" role="tab" aria-selected="true" onclick="switchTab('deployments')">
       Deployments <span class="tab-count" id="deployCount">–</span>
     </button>
+    <button class="tab" id="tab-jobs" role="tab" aria-selected="false" onclick="switchTab('jobs')">
+      <svg class="octicon" width="16" height="16"><use href="#octicon-beaker"/></svg>
+      Jobs <span class="tab-count" id="jobCount">–</span>
+    </button>
     <button class="tab" id="tab-nodes" role="tab" aria-selected="false" onclick="switchTab('nodes')">
       <svg class="octicon" width="16" height="16"><use href="#octicon-pulse"/></svg>
       Cluster Nodes <span class="tab-count" id="nodeCount">–</span>
@@ -182,6 +191,24 @@ tr:hover td{background:var(--bgColor-attentive)}
         </thead>
         <tbody id="deploymentsBody">
           <tr><td colspan="3" class="loading"><div class="spinner"></div><div>Loading deployments…</div></td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Jobs panel -->
+  <div class="tab-panel" id="panel-jobs">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Name</th>
+            <th>Status</th>
+            <th>Actions</th>
+          </tr>
+        </thead>
+        <tbody id="jobsBody">
+          <tr><td colspan="3" class="loading"><div class="spinner"></div><div>Loading jobs…</div></td></tr>
         </tbody>
       </table>
     </div>
@@ -481,10 +508,84 @@ async function fetchDeployments() {
       </td></tr>`;
   }
 }
+// ---------- Jobs ----------
+let jobs = [];
+
+// Map a job status string to the requested colors:
+//   succeeded -> green, pending -> yellow, running -> blue, failed -> red.
+const jobStatusMeta = {
+  succeeded: { cls: 'success', label: 'Succeeded',   dot: 'var(--fgColor-success)',   icon: '#octicon-check-circle' },
+  pending:   { cls: 'pending', label: 'Pending',     dot: 'var(--fgColor-attention)', icon: '#octicon-info' },
+  running:   { cls: 'running', label: 'Running',     dot: 'var(--fgColor-accent)',    icon: '#octicon-pulse' },
+  failed:    { cls: 'failed',  label: 'Failed',      dot: 'var(--fgColor-danger)',    icon: '#octicon-alert' },
+};
+
+function renderJobs() {
+  const tbody = document.getElementById('jobsBody');
+  const jc = document.getElementById('jobCount');
+  if (jc) jc.textContent = jobs.length;
+  if (jobs.length === 0) {
+    tbody.innerHTML = `<tr><td colspan="3" class="empty-state">
+      <svg class="octicon" width="32" height="32"><use href="#octicon-cloud"/></svg>
+      <div>No jobs found in this namespace.</div>
+    </td></tr>`;
+    return;
+  }
+  tbody.innerHTML = jobs.map(j => {
+    const m = jobStatusMeta[j.status] || jobStatusMeta.pending;
+    const counts = [];
+    if (j.active)    counts.push(j.active + ' active');
+    if (j.succeeded) counts.push(j.succeeded + ' done');
+    if (j.failed)    counts.push(j.failed + ' failed');
+    const countText = counts.length ? counts.join(', ') : '—';
+    return `
+      <tr data-name="${j.name}">
+        <td class="name-cell">
+          <div class="name-cell-inner">
+            <span class="job-dot" style="background:${m.dot}" title="${m.label}"></span>
+            <span>${j.name}</span>
+          </div>
+        </td>
+        <td>
+          <span class="status-badge ${m.cls}">
+            <svg class="octicon" width="12" height="12"><use href="${m.icon}"/></svg>
+            ${m.label} <span style="font-weight:400;opacity:.8">· ${countText}</span>
+          </span>
+        </td>
+        <td>
+          <div class="actions-cell">
+            <button class="btn-icon" onclick="showJobLogs('${j.name}')" title="View job output">
+              <svg class="octicon" width="16" height="16"><use href="#octicon-pulse"/></svg>
+            </button>
+          </div>
+        </td>
+      </tr>`;
+  }).join('');
+}
+
+async function showJobLogs(jobName) {
+  const j = jobs.find(x => x.name === jobName);
+  if (!j) return;
+  if (!j.pod) { alert(`No pod found for job ${jobName} yet.`); return; }
+  openLogModal(`job:${jobName}`, j.pod, j.container);
+}
+
+async function fetchJobs() {
+  try {
+    jobs = await api('api/jobs');
+    renderJobs();
+  } catch (err) {
+    document.getElementById('jobsBody').innerHTML =
+      `<tr><td colspan="3" class="empty-state">
+        <svg class="octicon" width="32" height="32"><use href="#octicon-alert"/></svg>
+        <div>Failed to load jobs: ${err.message}</div>
+      </td></tr>`;
+  }
+}
 // ---------- Tabs ----------
 function switchTab(name) {
-  const panels = { deployments: 'panel-deployments', nodes: 'panel-nodes' };
-  const tabs = { deployments: 'tab-deployments', nodes: 'tab-nodes' };
+  const panels = { deployments: 'panel-deployments', jobs: 'panel-jobs', nodes: 'panel-nodes' };
+  const tabs = { deployments: 'tab-deployments', jobs: 'tab-jobs', nodes: 'tab-nodes' };
   for (const key of Object.keys(panels)) {
     const active = key === name;
     document.getElementById(panels[key]).classList.toggle('active', active);
@@ -616,8 +717,9 @@ async function saveTokens() {
 }
 
 fetchDeployments();
+fetchJobs();
 fetchNodes();
-setInterval(() => { fetchDeployments(); fetchNodes(); }, 10000);
+setInterval(() => { fetchDeployments(); fetchJobs(); fetchNodes(); }, 10000);
 </script>
 </body>
 </html>

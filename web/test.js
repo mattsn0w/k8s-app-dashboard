@@ -75,6 +75,14 @@ function readyColor(status) {
   return 'danger'; // Unknown / anything else
 }
 
+// ---------- Job status colors (pure logic) ----------
+
+// Mirrors jobStatusMeta in the SPA: status -> CSS class.
+function jobStatusClass(status) {
+  const map = { succeeded: 'success', pending: 'pending', running: 'running', failed: 'failed' };
+  return map[status] || 'pending';
+}
+
 // ---------- Node resource bars (pure logic) ----------
 
 // Mirrors levelClass in the SPA: utilization -> CSS level.
@@ -209,6 +217,14 @@ assertEq(readyColor('Ready'), 'success', 'Ready -> green');
 assertEq(readyColor('NotReady'), 'attention', 'NotReady -> yellow');
 assertEq(readyColor('Unknown'), 'danger', 'Unknown -> red');
 assertEq(readyColor(''), 'danger', 'empty -> red');
+
+// --- Job status class tests ---
+console.log('Job status:');
+assertEq(jobStatusClass('succeeded'), 'success', 'succeeded -> green/success');
+assertEq(jobStatusClass('pending'), 'pending', 'pending -> yellow/pending');
+assertEq(jobStatusClass('running'), 'running', 'running -> blue/running');
+assertEq(jobStatusClass('failed'), 'failed', 'failed -> red/failed');
+assertEq(jobStatusClass('weird'), 'pending', 'unknown -> default pending');
 
 // --- Summary ---
 console.log(`\n${passed} passed, ${failed} failed`);

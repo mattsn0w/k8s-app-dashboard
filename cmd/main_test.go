@@ -439,3 +439,33 @@ func TestHandleIndex_ServesEmbeddedUI(t *testing.T) {
 }
 
 // ---------- helper ----------
+
+func TestJobStatusOf(t *testing.T) {
+	// Condition-driven outcomes take priority.
+	mkJob := func(conds []jobCondition, succeeded, failed, active int32) job {
+		var j job
+		j.Metadata.Name = "t"
+		j.Status.Conditions = conds
+		j.Status.Succeeded = succeeded
+		j.Status.Failed = failed
+		j.Status.Active = active
+		return j
+	}
+	cases := []struct {
+		name string
+		j    job
+		want string
+	}{
+		{"complete condition", mkJob([]jobCondition{{Type: "Complete", Status: "True"}}, 1, 0, 0), "succeeded"},
+		{"failed condition", mkJob([]jobCondition{{Type: "Failed", Status: "True"}}, 0, 1, 0), "failed"},
+		{"active -> running", mkJob(nil, 0, 0, 1), "running"},
+		{"succeeded count only", mkJob(nil, 2, 0, 0), "succeeded"},
+		{"failed count only", mkJob(nil, 0, 3, 0), "failed"},
+		{"no signals -> pending", mkJob(nil, 0, 0, 0), "pending"},
+	}
+	for _, c := range cases {
+		if got := jobStatusOf(c.j); got != c.want {
+			t.Errorf("%s: jobStatusOf = %q, want %q", c.name, got, c.want)
+		}
+	}
+}
