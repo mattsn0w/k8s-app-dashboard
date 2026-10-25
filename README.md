@@ -2,19 +2,7 @@
 
 A single-page Kubernetes deployment control panel. Manage deployments, view logs, and inspect cluster state from one lightweight web UI — no heavy frontend framework, no client-go, no external dependencies.
 
-```
-┌──────────────────────────────────────────────────────────┐
-│  Devpod  Control Panel                    ☀️  ⚙️       │
-├──────────────────────────────────────────────────────────┤
-│  Deployments                                            │
-│  ┌────────────────────────────────────────────────────┐  │
-│  │  Name        Status              Actions          │  │
-│  │  echo-server  ● 2 containers      📋 ⚡ 🗑  [ON] │  │
-│  │  nginx        ● 1 container       📋 ⚡ 🗑  [ON] │  │
-│  │  hello-world  ○ 0 containers      📋 ⚡ 🗑  [OFF]│  │
-│  └────────────────────────────────────────────────────┘  │
-└──────────────────────────────────────────────────────────┘
-```
+![Devpod control panel](docs/screenshot.png)
 
 ## Features
 

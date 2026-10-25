@@ -1529,6 +1529,63 @@ func wsReadFrameReader(r io.Reader) (byte, []byte, error) {
 	return opcode, payload, nil
 }
 
+// sameOriginOnly pins the API to same-origin access. The app has no cross-origin
+// clients, so it must never send an Access-Control-Allow-Origin header. Browsers
+// enforce same-origin by default (no header = cross-origin reads blocked), but a
+// future handler that "helpfully" adds `Access-Control-Allow-Origin: *` or
+// reflects a caller's Origin would open the JSON API to cross-origin abuse. This
+// middleware strips any such header (plus the correlated Vary: Origin) the moment
+// the response is written, so the policy is enforced centrally rather than
+// relying on every handler remembering not to set one. See SEC-07.
+func sameOriginOnly(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		next.ServeHTTP(&stripCORSWriter{ResponseWriter: w}, r)
+	})
+}
+
+// stripCORSWriter wraps http.ResponseWriter and removes permissive CORS headers
+// on the first Write/WriteHeader (when the header map is about to be committed).
+// This runs *after* the handler has set its headers, so a handler that sets
+// Access-Control-Allow-Origin is neutralized.
+type stripCORSWriter struct {
+	http.ResponseWriter
+	stripped bool
+}
+
+func (s *stripCORSWriter) strip() {
+	if s.stripped {
+		return
+	}
+	s.stripped = true
+	h := s.Header()
+	h.Del("Access-Control-Allow-Origin")
+	h.Del("Access-Control-Allow-Credentials")
+	if v := h.Get("Vary"); v != "" {
+		parts := make([]string, 0, 2)
+		for _, p := range strings.Split(v, ",") {
+			if strings.EqualFold(strings.TrimSpace(p), "Origin") {
+				continue
+			}
+			parts = append(parts, strings.TrimSpace(p))
+		}
+		if len(parts) == 0 {
+			h.Del("Vary")
+		} else {
+			h.Set("Vary", strings.Join(parts, ", "))
+		}
+	}
+}
+
+func (s *stripCORSWriter) WriteHeader(code int) {
+	s.strip()
+	s.ResponseWriter.WriteHeader(code)
+}
+
+func (s *stripCORSWriter) Write(b []byte) (int, error) {
+	s.strip()
+	return s.ResponseWriter.Write(b)
+}
+
 // basePathHandler serves the app (mux) under an optional base path. With an
 // empty base it is a no-op passthrough. With a base (e.g. "/app") it lets the
 // same SPA + API work at /app/ and /app/api/... by stripping the base for the
@@ -1587,7 +1644,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:              *listenAddr,
-		Handler:           basePathHandler(mux, *basePath),
+		Handler:           sameOriginOnly(basePathHandler(mux, *basePath)),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 	log.Printf("deploy-dashboard listening on %s (namespace=%s)", *listenAddr, *namespace)

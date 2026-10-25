@@ -32,7 +32,7 @@ Each issue is a single markdown file in this directory, capturing **type**, **su
 | SEC-04 | Log endpoint exposes any pod, no filtering | High | Medium |
 | SEC-05 | Raw K8s API error text returned to the client | Low | Low |
 | SEC-06 | workload-url allows open-redirect / javascript: | Low | Low |
-| SEC-07 | No CORS restriction (latent) | Low | Low |
+| SEC-07 | No CORS restriction (latent) | Low | Low | ✅ FIXED (`sameOriginOnly` middleware + test) |
 | SEC-08 | WebSocket 1 MiB frame cap / no rate limit | Low | Medium |
 | SEC-09 | Enforce OIDC auth via an Envoy Gateway SecurityPolicy | Critical | Low | 🔧 IMPLEMENTED (dry-run; not applied live) — the fix for SEC-01 |
 
