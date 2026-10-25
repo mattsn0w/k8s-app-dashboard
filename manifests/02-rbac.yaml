@@ -19,6 +19,12 @@ rules:
 - apiGroups: [""]
   resources: ["pods", "nodes", "services"]
   verbs: ["get", "list", "watch"]
+# Pods: the "Terminate pods" action deletes individual pods (e.g. to restart
+# a crashed container) without deleting the whole Deployment, so the
+# ServiceAccount needs delete on pods in addition to read.
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["delete"]
 - apiGroups: [""]
   resources: ["pods/log"]
   verbs: ["get"]
@@ -49,6 +55,40 @@ roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
   name: deploy-dashboard
+subjects:
+- kind: ServiceAccount
+  name: deploy-dashboard
+  namespace: apps
+---
+# Namespace-scoped access to the SINGLE user-settings Secret (SSH key +
+# tokens). The app only reads and writes this one named Secret, so grant just
+# get + update + patch on that name -- no list over all secrets, no create.
+# (SEC-02/SEC-03: credentials moved from a broad ConfigMap grant to a
+# least-privilege, name-scoped Secret grant.)
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: deploy-dashboard-user-settings
+  namespace: apps
+  labels:
+    app.kubernetes.io/name: deploy-dashboard
+rules:
+- apiGroups: [""]
+  resources: ["secrets"]
+  resourceNames: ["user-settings"]
+  verbs: ["get", "update", "patch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: deploy-dashboard-user-settings
+  namespace: apps
+  labels:
+    app.kubernetes.io/name: deploy-dashboard
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: deploy-dashboard-user-settings
 subjects:
 - kind: ServiceAccount
   name: deploy-dashboard

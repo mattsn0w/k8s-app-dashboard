@@ -14,6 +14,11 @@ func TestIsValidWorkloadURL(t *testing.T) {
 	}{
 		// Valid relative paths
 		{name: "simple relative path", url: "/apps/echo", want: true},
+		// Valid relative subpaths (no leading slash, end with "/") — used for
+		// subpath-aware SPA workloads served under the dashboard's base path.
+		{name: "relative subpath vscode/", url: "vscode/", want: true},
+		{name: "relative subpath nested", url: "apps/echo/", want: true},
+		{name: "relative subpath single word", url: "terminal/", want: true},
 		{name: "root path (rejected by design)", url: "/", want: false},
 		{name: "nested path", url: "/a/b/c/d", want: true},
 		{name: "path with query", url: "/apps/echo?foo=bar", want: true},
@@ -41,6 +46,11 @@ func TestIsValidWorkloadURL(t *testing.T) {
 		{name: "leading whitespace", url: " /apps/echo", want: false},
 		{name: "trailing whitespace", url: "/apps/echo ", want: false},
 		{name: "internal whitespace", url: "/apps /echo", want: false},
+
+		// Invalid: relative subpath without trailing slash, or with double slash
+		{name: "relative no trailing slash", url: "vscode", want: false},
+		{name: "relative double slash", url: "vscode//", want: false},
+		{name: "relative just slash", url: "/", want: false},
 
 		// Invalid: no scheme, no leading slash
 		{name: "bare domain", url: "example.com", want: false},

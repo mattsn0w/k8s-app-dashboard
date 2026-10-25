@@ -11,6 +11,7 @@ metadata:
     app: echo-server
   annotations:
     workload-url: "/apps/echo"
+    workload-icon: server
 spec:
   replicas: 2
   selector:
@@ -49,104 +50,156 @@ spec:
   selector:
     app: echo-server
 ---
-# ── nginx: a classic web server ───────────────────────────────
+# ── ttyd terminal ─────────────────────────────────────────────
+# ttyd is a single static C binary: PTY + WebSocket + self-contained xterm.js.
+# The -b flag sets the base-path so ttyd natively serves at /apps/terminal/
+# (page), /apps/terminal/ws (WebSocket), /apps/terminal/token (auth token).
+# No gateway URLRewrite is needed — the PathPrefix match routes directly.
+# For per-user instances, set -b to the user's subpath (e.g. /u/user1/terminal).
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: nginx
+  name: ttyd-terminal
   namespace: apps
   labels:
-    app: nginx
+    app: ttyd-terminal
   annotations:
-    workload-url: "/apps/nginx"
+    workload-url: "/apps/terminal"
+    workload-icon: terminal
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: nginx
+      app: ttyd-terminal
   template:
     metadata:
       labels:
-        app: nginx
+        app: ttyd-terminal
     spec:
       containers:
-      - name: nginx
-        image: nginx:alpine
+      - name: terminal
+        image: registry.co.slakin.net/local/ttyd-web:latest
+        args:
+        - "-W"
+        - "-p"
+        - "7681"
+        - "-b"
+        - "/apps/terminal"
+        - "bash"
         ports:
-        - containerPort: 80
+        - containerPort: 7681
+          name: http
+        resources:
+          requests:
+            cpu: "10m"
+            memory: "32Mi"
+          limits:
+            cpu: "200m"
+            memory: "128Mi"
+        readinessProbe:
+          httpGet:
+            path: /apps/terminal/token
+            port: 7681
+          initialDelaySeconds: 2
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /apps/terminal/token
+            port: 7681
+          initialDelaySeconds: 10
+          periodSeconds: 20
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: nginx
+  name: ttyd-terminal
   namespace: apps
   labels:
-    app: nginx
+    app: ttyd-terminal
 spec:
   type: ClusterIP
   ports:
-  - port: 80
-    targetPort: 80
+  - port: 7681
+    targetPort: 7681
     protocol: TCP
     name: http
   selector:
-    app: nginx
+    app: ttyd-terminal
 ---
-# ── hello-world: a simple multi-container demo ────────────────
+# ── VS Code Web ───────────────────────────────────────────────
+# A third demo workload to demonstrate the workload-url + workload-icon
+# feature. "VS Code Web" is the community web build of Visual Studio Code.
+# workload-icon: "vscode" refers to the Primer Octicon `vscode`.
+# workload-url: "apps/vscode/" is a relative subpath (subpath-aware SPA).
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: hello-world
+  name: vscode-web
   namespace: apps
   labels:
-    app: hello-world
+    app: vscode-web
   annotations:
-    workload-url: "/apps/hello"
+    # Absolute path: the SPA opens this directly (not relative to /app/), so it
+    # resolves to /apps/vscode/ regardless of the SPA's own subpath.
+    workload-url: "/apps/vscode/"
+    workload-icon: vscode
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: hello-world
+      app: vscode-web
   template:
     metadata:
       labels:
-        app: hello-world
+        app: vscode-web
     spec:
       containers:
-      - name: hello
-        image: busybox:latest
-        command: ["sh", "-c"]
-        args:
-        - |
-          echo "Hello from the hello-world container!"
-          while true; do
-            echo "$(date -u '+%Y-%m-%dT%H:%M:%SZ') heartbeat"
-            sleep 5
-          done
-      - name: sidecar
-        image: busybox:latest
-        command: ["sh", "-c"]
-        args:
-        - |
-          echo "Sidecar container started."
-          while true; do
-            echo "$(date -u '+%Y-%m-%dT%H:%M:%SZ') sidecar-alive"
-            sleep 10
-          done
+      - name: vscode
+        image: codercom/code-server:latest
+        # Auth is disabled (--auth none, empty PASSWORD) because the upstream
+        # Envoy Gateway enforces OIDC. The browser is already authenticated by
+        # the gateway before it reaches code-server, so code-server should not
+        # show its own login screen.
+        args: ["--auth", "none", "--bind-addr", "0.0.0.0:8080"]
+        env:
+        - name: PASSWORD
+          value: ""
+        ports:
+        - containerPort: 8080
+          name: http
+        resources:
+          requests:
+            cpu: "50m"
+            memory: "256Mi"
+          limits:
+            cpu: "500m"
+            memory: "512Mi"
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 10
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 30
+          periodSeconds: 20
 ---
 apiVersion: v1
 kind: Service
 metadata:
-  name: hello-world
+  name: vscode-web
   namespace: apps
   labels:
-    app: hello-world
+    app: vscode-web
 spec:
   type: ClusterIP
   ports:
-  - port: 80
-    targetPort: 80
+  - port: 8080
+    targetPort: 8080
     protocol: TCP
     name: http
   selector:
-    app: hello-world
+    app: vscode-web

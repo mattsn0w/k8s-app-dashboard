@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"context"
+	"encoding/base64"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
@@ -264,16 +265,21 @@ func TestDeleteDeployment(t *testing.T) {
 // ---------- getUserSettings ----------
 
 func TestGetUserSettings(t *testing.T) {
+	// The settings now live in a Secret. The API server returns "data"
+	// (base64) and/or "stringData" (plain); the backend decodes "data" and
+	// lets "stringData" override it.
 	c, server := newTestK8sClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if !strings.Contains(r.URL.Path, "/configmaps/user-settings") {
-			t.Errorf("path = %s, want /configmaps/user-settings", r.URL.Path)
+		if !strings.Contains(r.URL.Path, "/secrets/user-settings") {
+			t.Errorf("path = %s, want /secrets/user-settings", r.URL.Path)
 		}
 		resp := struct {
-			Data map[string]string `json:"data"`
+			StringData map[string]string `json:"stringData"`
+			Data       map[string]string `json:"data"`
 		}{
+			// base64 of "ssh-ed25519 AAAA test@example.com" and "ghp_123"
 			Data: map[string]string{
-				"ssh-public-key": "ssh-ed25519 AAAA test@example.com",
-				"token.GITHUB":   "ghp_123",
+				"ssh-public-key": base64.StdEncoding.EncodeToString([]byte("ssh-ed25519 AAAA test@example.com")),
+				"token.GITHUB":   base64.StdEncoding.EncodeToString([]byte("ghp_123")),
 			},
 		}
 		w.Header().Set("Content-Type", "application/json")
@@ -293,10 +299,35 @@ func TestGetUserSettings(t *testing.T) {
 	}
 }
 
+// TestGetUserSettings_StringDataPrecedence verifies a plain "stringData"
+// entry overrides the decoded "data" for the same key.
+func TestGetUserSettings_StringDataPrecedence(t *testing.T) {
+	c, server := newTestK8sClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		resp := struct {
+			StringData map[string]string `json:"stringData"`
+			Data       map[string]string `json:"data"`
+		}{
+			StringData: map[string]string{"token.GITHUB": "from-stringdata"},
+			Data:       map[string]string{"token.GITHUB": base64.StdEncoding.EncodeToString([]byte("from-data"))},
+		}
+		w.Header().Set("Content-Type", "application/json")
+		json.NewEncoder(w).Encode(resp)
+	}))
+	defer server.Close()
+
+	data, err := c.getUserSettings(context.Background())
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if data["token.GITHUB"] != "from-stringdata" {
+		t.Errorf("token.GITHUB = %q, want stringData to override data", data["token.GITHUB"])
+	}
+}
+
 func TestGetUserSettings_404(t *testing.T) {
 	c, server := newTestK8sClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(404)
-		w.Write([]byte(`{"message":"configmap not found"}`))
+		w.Write([]byte(`{"message":"secret not found"}`))
 	}))
 	defer server.Close()
 
@@ -311,16 +342,17 @@ func TestGetUserSettings_404(t *testing.T) {
 
 // ---------- upsertUserSettings ----------
 
-func TestUpsertUserSettings(t *testing.T) {
-	var gotMethod string
-	var gotBody string
+// TestUpsertUserSettings_Create verifies the create path: POST -> 201, written
+// with stringData (plain values), against the secrets collection.
+func TestUpsertUserSettings_Create(t *testing.T) {
+	var gotMethod, gotPath, gotBody string
 	c, server := newTestK8sClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		gotMethod = r.Method
+		gotPath = r.URL.Path
 		buf := make([]byte, 4096)
 		n, _ := r.Body.Read(buf)
 		gotBody = string(buf[:n])
-		w.WriteHeader(200)
-		json.NewEncoder(w).Encode(map[string]any{"status": "ok"})
+		w.WriteHeader(201)
 	}))
 	defer server.Close()
 
@@ -328,11 +360,53 @@ func TestUpsertUserSettings(t *testing.T) {
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
-	if gotMethod != "PUT" {
-		t.Errorf("method = %s, want PUT", gotMethod)
+	if gotMethod != "POST" {
+		t.Errorf("method = %s, want POST (create)", gotMethod)
+	}
+	if !strings.Contains(gotPath, "/secrets") {
+		t.Errorf("path = %s, want to hit /secrets", gotPath)
+	}
+	if !strings.Contains(gotBody, "stringData") {
+		t.Errorf("body = %q, want stringData (plain values)", gotBody)
 	}
 	if !strings.Contains(gotBody, "value") {
 		t.Errorf("body = %q, want contains value", gotBody)
+	}
+}
+
+// TestUpsertUserSettings_Update verifies the update fallback: POST returns
+// 409 (already exists) -> a PUT against the named Secret is issued.
+func TestUpsertUserSettings_Update(t *testing.T) {
+	var calls []string
+	c, server := newTestK8sClient(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		calls = append(calls, r.Method+" "+r.URL.Path)
+		if r.Method == "POST" {
+			w.WriteHeader(409) // already exists
+			return
+		}
+		if r.Method == "PUT" {
+			if !strings.HasSuffix(r.URL.Path, "/secrets/user-settings") {
+				t.Errorf("PUT path = %s, want /secrets/user-settings", r.URL.Path)
+			}
+			w.WriteHeader(200)
+			return
+		}
+		w.WriteHeader(400)
+	}))
+	defer server.Close()
+
+	err := c.upsertUserSettings(context.Background(), map[string]string{"key": "value"})
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(calls) != 2 {
+		t.Fatalf("expected 2 calls (POST then PUT), got %v", calls)
+	}
+	if !strings.HasPrefix(calls[0], "POST ") {
+		t.Errorf("first call = %q, want POST", calls[0])
+	}
+	if !strings.HasPrefix(calls[1], "PUT ") {
+		t.Errorf("second call = %q, want PUT", calls[1])
 	}
 }
 

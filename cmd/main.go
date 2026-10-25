@@ -43,6 +43,7 @@ var (
 	kubeconfig = flag.String("kubeconfig", "", "kubeconfig path (empty = in-cluster)")
 	namespace  = flag.String("namespace", defaultNS, "namespace to watch")
 	listenAddr = flag.String("listen", defaultPort, "listen address")
+	basePath   = flag.String("base-path", "", "serve the SPA + API under this base path (e.g. /app). Empty = serve at /")
 )
 
 // ---------- k8s API client (stdlib only) ----------
@@ -294,15 +295,26 @@ type nodeMetricsList struct {
 //   - contains only a relative or absolute subpath (no query params, no fragments
 //     that would break the path, no unexpected characters)
 func isValidWorkloadURL(s string) bool {
-	if !strings.HasPrefix(s, "http://") && !strings.HasPrefix(s, "https://") && !strings.HasPrefix(s, "/") {
+	if s == "" {
+		return false
+	}
+	isHTTP := strings.HasPrefix(s, "http://") || strings.HasPrefix(s, "https://")
+	isAbsPath := strings.HasPrefix(s, "/")
+	isRelPath := !isHTTP && !isAbsPath && strings.HasSuffix(s, "/") && len(s) > 1 && !strings.Contains(s, "//")
+	// Accepted forms:
+	//   - http(s)://host/path
+	//   - absolute path  (/apps/echo, /vscode)
+	//   - relative subpath ending in "/"  (vscode/ , /apps/terminal/)
+	// A bare relative subpath must not contain "//" and must be more than "/".
+	if !isHTTP && !isAbsPath && !isRelPath {
 		return false
 	}
 	// For absolute paths, must have more than just "/"
-	if strings.HasPrefix(s, "/") && (s == "/" || len(s) == 1) {
+	if isAbsPath && (s == "/" || len(s) == 1) {
 		return false
 	}
 	// For http(s) URLs, must have a non-empty path after the scheme
-	if strings.HasPrefix(s, "http://") || strings.HasPrefix(s, "https://") {
+	if isHTTP {
 		if i := strings.Index(s, "/"); i >= 0 {
 			if s[i:] == "/" {
 				return false
@@ -320,6 +332,36 @@ func isValidWorkloadURL(s string) bool {
 	return true
 }
 
+// isValidOcticonName reports whether s is a valid Primer Octicon name.
+// Octicon names are strictly lowercase alphanumerics separated by single
+// hyphens (e.g. "rocket", "cloud-offline", "issue-reopened"). This matches
+// the `octicon-<name>` CSS/SVG ids used in the web sprite. The icon must also
+// be present in the web sprite (see web/index.html) to actually render; this
+// check only guards against malformed names so a bad annotation never
+// produces a broken <use href>. Note: Octicons have no case- or
+// underscore-variants; the 16px name is the canonical name.
+func isValidOcticonName(s string) bool {
+	if s == "" || len(s) > 64 {
+		return false
+	}
+	if s[0] == '-' || s[len(s)-1] == '-' {
+		return false
+	}
+	for i, c := range s {
+		if c >= 'a' && c <= 'z' || c >= '0' && c <= '9' {
+			continue
+		}
+		if c == '-' {
+			if i > 0 && s[i-1] == '-' {
+				return false // no consecutive hyphens
+			}
+			continue
+		}
+		return false // anything else (uppercase, underscore, space, etc.)
+	}
+	return true
+}
+
 type deploymentView struct {
 	Name           string   `json:"name"`
 	Namespace      string   `json:"namespace"`
@@ -329,6 +371,7 @@ type deploymentView struct {
 	Running        bool     `json:"running"`
 	ContainerNames []string `json:"containerNames"`
 	WorkloadURL    string   `json:"workloadUrl,omitempty"`
+	WorkloadIcon   string   `json:"workloadIcon,omitempty"`
 }
 
 type podView struct {
@@ -354,6 +397,13 @@ func (c *k8sClient) listDeployments(ctx context.Context) ([]deploymentView, erro
 			continue
 		}
 
+		// Optional workload-icon: a Primer Octicon name shown next to the
+		// deployment name in the UI. Absent or invalid -> no icon.
+		icon := ""
+		if v, ok := d.Metadata.Annotations["workload-icon"]; ok && isValidOcticonName(v) {
+			icon = v
+		}
+
 		names := []string{}
 		for _, ctr := range d.Spec.Template.Spec.Containers {
 			names = append(names, ctr.Name)
@@ -364,7 +414,7 @@ func (c *k8sClient) listDeployments(ctx context.Context) ([]deploymentView, erro
 			Name: d.Metadata.Name, Namespace: d.Metadata.Namespace,
 			Replicas: d.Spec.Replicas, Ready: d.Status.ReadyReplicas,
 			Containers: len(names), Running: running, ContainerNames: names,
-			WorkloadURL: u,
+			WorkloadURL: u, WorkloadIcon: icon,
 		})
 	}
 	return out, nil
@@ -553,32 +603,62 @@ func (c *k8sClient) deleteDeployment(ctx context.Context, name string) error {
 	return c.do(ctx, "DELETE", "/apis/apps/v1/namespaces/"+*namespace+"/deployments/"+name, nil, nil)
 }
 
-// ── User Settings (ConfigMap) ───────────────────────────────────
+// ── User Settings (Secret) ──────────────────────────────────────
+//
+// Sensitive user data (SSH public key, access tokens) is stored in a
+// namespaced Secret named "user-settings", not a ConfigMap: Secrets are the
+// correct primitive for credentials and can be encrypted at rest, whereas
+// ConfigMaps are readable by anyone with namespace get and show up in
+// kubectl dumps and etcd snapshots.
+//
+// The backend is the only thing that reads/writes the Secret; the API surface
+// (/api/user-settings, /api/tokens) is unchanged, so the frontend is untouched.
+// The RBAC grant is scoped to this single Secret name (see 02-rbac.yaml).
+
+const userSettingsSecretName = "user-settings"
 
 func (c *k8sClient) getUserSettings(ctx context.Context) (map[string]string, error) {
-	var cm struct {
-		Data map[string]string `json:"data"`
+	var sec struct {
+		StringData map[string]string `json:"stringData"`
+		Data       map[string]string `json:"data"` // base64 (stringData takes precedence)
 	}
-	if err := c.do(ctx, "GET", "/api/v1/namespaces/"+*namespace+"/configmaps/user-settings", nil, &cm); err != nil {
+	path := "/api/v1/namespaces/" + *namespace + "/secrets/" + userSettingsSecretName
+	if err := c.do(ctx, "GET", path, nil, &sec); err != nil {
 		if strings.Contains(err.Error(), "404") {
 			return map[string]string{}, nil
 		}
 		return nil, err
 	}
-	if cm.Data == nil {
-		cm.Data = map[string]string{}
+	out := map[string]string{}
+	// "data" holds base64 values; decode into the map.
+	for k, v := range sec.Data {
+		decoded, derr := base64.StdEncoding.DecodeString(v)
+		if derr != nil {
+			// Skip undecodable entries rather than failing the whole read.
+			continue
+		}
+		out[k] = string(decoded)
 	}
-	return cm.Data, nil
+	// "stringData" (plain) overrides any decoded "data" for the same key.
+	for k, v := range sec.StringData {
+		out[k] = v
+	}
+	return out, nil
 }
 
+// upsertUserSettings creates-or-updates the user-settings Secret. We write
+// with stringData (plain values) so the API server base64-encodes for us and
+// we never have to hand-encode.
 func (c *k8sClient) upsertUserSettings(ctx context.Context, data map[string]string) error {
-	// Try to create first; if it already exists, PUT it
 	body := map[string]any{
-		"metadata": map[string]any{"name": "user-settings", "namespace": *namespace},
-		"data":     data,
+		"metadata":   map[string]any{"name": userSettingsSecretName, "namespace": *namespace},
+		"type":       "Opaque",
+		"stringData": data,
 	}
 	b, _ := json.Marshal(body)
-	req, err := http.NewRequestWithContext(ctx, "POST", c.baseURL+"/api/v1/namespaces/"+*namespace+"/configmaps", bytes.NewReader(b))
+	// Try to create first; if it already exists, fall back to PUT.
+	req, err := http.NewRequestWithContext(ctx, "POST",
+		c.baseURL+"/api/v1/namespaces/"+*namespace+"/secrets", bytes.NewReader(b))
 	if err != nil {
 		return err
 	}
@@ -588,21 +668,22 @@ func (c *k8sClient) upsertUserSettings(ctx context.Context, data map[string]stri
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	resp.Body.Close()
 	if resp.StatusCode == 201 {
 		return nil
 	}
-	// Already exists — fall through to PUT
 	return c.putUserSettings(ctx, data)
 }
 
 func (c *k8sClient) putUserSettings(ctx context.Context, data map[string]string) error {
 	body := map[string]any{
-		"metadata": map[string]any{"name": "user-settings", "namespace": *namespace},
-		"data":     data,
+		"metadata":   map[string]any{"name": userSettingsSecretName, "namespace": *namespace},
+		"type":       "Opaque",
+		"stringData": data,
 	}
 	b, _ := json.Marshal(body)
-	req, err := http.NewRequestWithContext(ctx, "PUT", c.baseURL+"/api/v1/namespaces/"+*namespace+"/configmaps/user-settings", bytes.NewReader(b))
+	req, err := http.NewRequestWithContext(ctx, "PUT",
+		c.baseURL+"/api/v1/namespaces/"+*namespace+"/secrets/"+userSettingsSecretName, bytes.NewReader(b))
 	if err != nil {
 		return err
 	}
@@ -615,7 +696,7 @@ func (c *k8sClient) putUserSettings(ctx context.Context, data map[string]string)
 	defer resp.Body.Close()
 	if resp.StatusCode >= 300 {
 		respBody, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("PUT user-settings: %s %s", resp.Status, string(respBody))
+		return fmt.Errorf("PUT secret %s: %s %s", userSettingsSecretName, resp.Status, string(respBody))
 	}
 	return nil
 }
@@ -1448,6 +1529,39 @@ func wsReadFrameReader(r io.Reader) (byte, []byte, error) {
 	return opcode, payload, nil
 }
 
+// basePathHandler serves the app (mux) under an optional base path. With an
+// empty base it is a no-op passthrough. With a base (e.g. "/app") it lets the
+// same SPA + API work at /app/ and /app/api/... by stripping the base for the
+// API/healthz routes and serving index.html for the base path itself. The SPA
+// uses relative api/* calls, so this is what makes it subpath-aware.
+func basePathHandler(mux http.Handler, base string) http.Handler {
+	base = strings.TrimSuffix(base, "/")
+	if base == "" {
+		return mux
+	}
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		p := r.URL.Path
+		// Exact base path (e.g. /app or /app/) -> serve the SPA.
+		if p == base || p == base+"/" {
+			r2 := r.Clone(r.Context())
+			r2.URL.Path = "/"
+			r2.RequestURI = "/"
+			mux.ServeHTTP(w, r2)
+			return
+		}
+		// Everything under the base -> strip the base and re-dispatch.
+		if strings.HasPrefix(p, base+"/") {
+			r2 := r.Clone(r.Context())
+			r2.URL.Path = "/" + strings.TrimPrefix(p, base+"/")
+			r2.RequestURI = r2.URL.RequestURI()
+			mux.ServeHTTP(w, r2)
+			return
+		}
+		// Outside the base -> 404 (the gateway only routes the base here anyway).
+		http.NotFound(w, r)
+	})
+}
+
 func main() {
 	flag.Parse()
 
@@ -1473,7 +1587,7 @@ func main() {
 
 	srv := &http.Server{
 		Addr:              *listenAddr,
-		Handler:           mux,
+		Handler:           basePathHandler(mux, *basePath),
 		ReadHeaderTimeout: 5 * time.Second,
 	}
 	log.Printf("deploy-dashboard listening on %s (namespace=%s)", *listenAddr, *namespace)

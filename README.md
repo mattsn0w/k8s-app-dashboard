@@ -24,8 +24,9 @@ A single-page Kubernetes deployment control panel. Manage deployments, view logs
 - **Terminate pods** — delete all pods for a deployment (the Deployment controller recreates them)
 - **Delete deployment** — permanently remove a deployment
 - **Workload URLs** — deployments annotated with `workload-url` get an external link in the table
-- **User settings** — store SSH public keys and access tokens in a ConfigMap, accessible from the UI
-- **Theme switching** — Catppuccin Latte (light) and Frappe (dark) themes, persisted in `localStorage`
+- **User settings** — store SSH public keys and access tokens in a Secret, accessible from the UI
+- **View modes** — **Basic** (default; only the Deployments tab) and **Advanced** (also shows the Jobs and Cluster nodes tabs). Persisted in the `user-settings` Secret via a **Modes** section in the user menu.
+- **Theme switching** — Catppuccin Latte (light) and Frappe (dark) themes, persisted in the `user-settings` Secret
 - **Subpath support** — works when served under any path (e.g. `/apps/dashboard/`) thanks to relative API calls and dynamic WebSocket URL construction
 
 ## Architecture

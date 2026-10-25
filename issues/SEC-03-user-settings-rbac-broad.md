@@ -4,6 +4,21 @@
 - **Summary:** `manifests/02-rbac.yaml` grants the dashboard ServiceAccount `get/list/watch/create/update/patch` on `configmaps` in `apps`. That lets the app **create** any ConfigMap name in the namespace, not just `user-settings`, widening its blast radius beyond what the feature needs.
 - **Severity:** Medium
 - **Effort:** Low
+- **Status:** ✅ FIXED
+
+## Resolution
+- The over-broad configmap grants lived in two live-only namespaced Roles
+  (`deploy-dashboard` and `deploy-dashboard-configmaps`), each granting
+  `get/list/watch/create/update/patch` on `configmaps`. Both Roles + their RoleBindings
+  were deleted; the committed `manifests/02-rbac.yaml` ClusterRole never had a configmap rule.
+- Replaced with a least-privilege, name-scoped grant: a namespaced `Role` + `RoleBinding`
+  (`deploy-dashboard-user-settings`) allowing `get/update/patch` on the single Secret
+  `user-settings` (see SEC-02). The app can no longer create/list any ConfigMap, nor read
+  any other Secret.
+- Verified with `auth can-i`: create/list/get configmaps = denied; get/update/patch on
+  `secrets/user-settings` = allowed.
+
+---
 
 ## Why this issue should be addressed / ranked
 Least-privilege is the point of a dedicated ServiceAccount. The app only ever reads/writes one known ConfigMap (`user-settings`), so granting namespace-wide `create` is unnecessary and would let a compromised or buggy handler write arbitrary ConfigMaps (which other apps may consume). Cheap to tighten, so it is a high-value, low-cost item.

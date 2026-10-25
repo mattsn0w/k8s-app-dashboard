@@ -61,7 +61,10 @@ spec:
         args:
         - |
           echo "Starting deploy-dashboard..."
-          exec /app/deploy-dashboard --listen=:8080 --namespace=apps
+          # --base-path=/app: the gateway serves the SPA under /app (the catch-all
+          # / is the gateway-served 503 status page). This makes the SPA + its
+          # relative api/* calls work under /app.
+          exec /app/deploy-dashboard --listen=:8080 --namespace=apps --base-path=/app
         volumeMounts:
         - name: app
           mountPath: /app
@@ -72,7 +75,7 @@ spec:
         # traffic; liveness restarts a wedged process (see APP-03).
         readinessProbe:
           httpGet:
-            path: /healthz
+            path: /app/healthz
             port: 8080
           initialDelaySeconds: 3
           periodSeconds: 10
@@ -80,7 +83,7 @@ spec:
           failureThreshold: 3
         livenessProbe:
           httpGet:
-            path: /healthz
+            path: /app/healthz
             port: 8080
           initialDelaySeconds: 10
           periodSeconds: 20
@@ -121,6 +124,15 @@ spec:
     protocol: HTTP
     port: 80
     hostname: "apps01.co.slakin.net"
+  - name: https
+    protocol: HTTPS
+    port: 443
+    hostname: "apps01.co.slakin.net"
+    tls:
+      mode: Terminate
+      certificateRefs:
+      - kind: Secret
+        name: apps01-tls
 ---
 # HTTPRoute: routes apps01.co.slakin.net to the dashboard service
 apiVersion: gateway.networking.k8s.io/v1
@@ -134,10 +146,29 @@ spec:
   hostnames:
   - "apps01.co.slakin.net"
   rules:
-  # Dashboard (default / catch-all)
+  # --- Real SPA + API: served by the Go backend under /app ---
+  # The backend runs with --base-path=/app, so the SPA (index.html) and its
+  # relative api/* calls + healthz all live under /app. This is what the browser
+  # actually uses for the app.
   - backendRefs:
     - name: deploy-dashboard
       port: 8080
+    matches:
+    - path:
+        type: PathPrefix
+        value: /app
+  # --- Catch-all /: gateway-served status page (direct response), no backend ---
+  # This is what the browser loads at the root (e.g. https://host/). Envoy serves
+  # it directly, so it works even when the SPA backend is down/restarting (503).
+  # The page polls /app/healthz every 3s and, once the backend is ready, reloads
+  # the real SPA at /app/ in the background. While the backend is down the user
+  # sees the dark "Starting up" dialog instead of a raw 503.
+  - filters:
+    - type: ExtensionRef
+      extensionRef:
+        group: gateway.envoyproxy.io
+        kind: HTTPRouteFilter
+        name: devpod-status-page
     matches:
     - path:
         type: PathPrefix
@@ -150,22 +181,34 @@ spec:
     - path:
         type: PathPrefix
         value: /apps/echo
-  # nginx demo
+  # ttyd terminal: serves natively at /apps/terminal/ via its -b flag; no URLRewrite needed.
   - backendRefs:
-    - name: nginx
-      port: 80
+    - name: ttyd-terminal
+      port: 7681
     matches:
     - path:
         type: PathPrefix
-        value: /apps/nginx
-  # hello-world demo
+        value: /apps/terminal
+  # VS Code Web: served under the /apps/vscode subpath. Code-server serves at its
+  # own root and uses relative paths, so the gateway strips the /apps/vscode prefix
+  # (URLRewrite ReplaceFullPath -> /) before it reaches code-server. The browser URL
+  # stays /apps/vscode/... and the relative redirects resolve correctly.
   - backendRefs:
-    - name: hello-world
-      port: 80
+    - name: vscode-web
+      port: 8080
+    filters:
+    - type: URLRewrite
+      urlRewrite:
+        path:
+          # ReplacePrefixMatch: strip the matched /apps/vscode prefix, keep the
+          # rest of the path (e.g. /apps/vscode/stable-x/out/foo.js -> /stable-x/out/foo.js).
+          # ReplaceFullPath would clobber the sub-path, breaking code-server's assets.
+          type: ReplacePrefixMatch
+          replacePrefixMatch: /
     matches:
     - path:
         type: PathPrefix
-        value: /apps/hello
+        value: /apps/vscode
 ---
 # ReferenceGrant: allows the Envoy Gateway controller to reference
 # the deploy-dashboard Service in the apps namespace
@@ -193,8 +236,8 @@ spec:
     name: echo-server
   - group: ""
     kind: Service
-    name: nginx
+    name: ttyd-terminal
   - group: ""
     kind: Service
-    name: hello-world
+    name: vscode-web
 

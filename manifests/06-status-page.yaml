@@ -1,0 +1,104 @@
+# Serves the graceful "starting up" page when the SPA backend is unavailable
+# (503/50x). The body must stay under 4096 bytes so Envoy can serve it directly
+# via the direct-response filter.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: devpod-status-page
+  namespace: apps
+  labels:
+    app.kubernetes.io/name: devpod
+data:
+  response.body: |
+    <!doctype html>
+    <html lang="en" data-color-mode="dark">
+    <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Devpod</title>
+    <style>
+    :root{--bg:#11111b;--fg:#cdd6f4;--muted:#a6adc8;--accent:#89b4fa;--border:#313244}
+    *{box-sizing:border-box;margin:0;padding:0}
+    html,body{height:100%}
+    body{display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--fg);font:14px/1.5 -apple-system,"Segoe UI",Helvetica,Arial,sans-serif}
+    .card{display:none;flex-direction:column;align-items:center;gap:14px;padding:28px 34px;border:1px solid var(--border);border-radius:12px;min-width:260px;text-align:center}
+    body.loading .card{display:flex}
+    .spinner{position:relative;width:30px;height:30px}
+    .ring{position:absolute;inset:0;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 1.6s linear infinite}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    h1{font-size:15px;font-weight:600}
+    p{font-size:13px;color:var(--muted)}
+    .status{font-size:12px;color:var(--accent);min-height:16px}
+    @media(prefers-reduced-motion:reduce){.ring{animation-duration:2s}}
+    </style>
+    </head>
+    <body>
+    <div class="card" role="status" aria-live="polite">
+      <div class="spinner"><div class="ring"></div></div>
+      <h1>Starting up</h1>
+      <p>Devpod is starting. Please wait while the service becomes ready.</p>
+      <div class="status" id="s">Waiting for the backend…</div>
+    </div>
+    <script>
+    (function(){
+      // This page is the gateway's direct-response for the SPA's catch-all path.
+      // Strategy: immediately probe the backend's health endpoint. If the backend is
+      // healthy, redirect straight to the real SPA (served by the backend at /app)
+      // without showing the loader. If it's down, show the dark loading dialog and
+      // poll until it's ready, then redirect.
+      //
+      // Base path: the app may be served under a subpath (e.g. /u/alice/). The
+      // healthz + SPA paths are resolved relative to the current document's
+      // directory so it works at any depth.
+      // The SPA + its health endpoint are served by the backend under /app
+      // (the backend runs with --base-path=/app). This page is the gateway's
+      // catch-all for /, so we probe /app/healthz and load /app/ when ready.
+      var healthz='/app/healthz';
+      var app='/app/';                                         // real SPA (backend-served)
+      var n=0, shown=false, warming=false;
+      function show(){if(!shown){document.body.classList.add('loading');shown=true;}}
+      function set(msg){var e=document.getElementById('s');if(e)e.textContent=msg;}
+      // Background reload: preload the SPA's HTML in the background so the final
+      // navigation is seamless (already cached / connection warm). We never do a
+      // hard reload before the content is ready.
+      function go(){
+        if(warming)return;
+        warming=true;
+        set('Ready \u2014 loading…');
+        fetch(app,{cache:'no-store'}).then(function(r){
+          if(r.ok){location.replace(app);}
+          else{location.replace(app);}
+        }).catch(function(){location.replace(app);});
+      }
+      function poll(){
+        n++;
+        fetch(healthz,{cache:'no-store'}).then(function(r){
+          if(r.ok){go();}
+          else{show();set('Backend not ready (attempt '+n+'). Retrying…');setTimeout(poll,3000);}
+        }).catch(function(){show();set('Retrying in 3s (attempt '+n+')…');setTimeout(poll,3000);});
+      }
+      poll();
+    })();
+    </script>
+    </body>
+    </html>
+---
+# Gateway filter: serves the status page (above) as a direct response. Envoy
+# serves the body itself — no backend needed.
+apiVersion: gateway.envoyproxy.io/v1alpha1
+kind: HTTPRouteFilter
+metadata:
+  name: devpod-status-page
+  namespace: apps
+  labels:
+    app.kubernetes.io/name: devpod
+spec:
+  directResponse:
+    contentType: text/html; charset=utf-8
+    statusCode: 503
+    body:
+      type: ValueRef
+      valueRef:
+        group: ""
+        kind: ConfigMap
+        name: devpod-status-page

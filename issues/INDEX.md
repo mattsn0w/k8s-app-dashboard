@@ -5,6 +5,7 @@ Each issue is a single markdown file in this directory, capturing **type**, **su
 ## Suggested execution order
 
 1. **Security first (unblocks everything):** SEC-02 (+ SEC-03) → SEC-04/05. _(SEC-01 is WONT FIX — auth is enforced by the Envoy Gateway `SecurityPolicy` OIDC+JWT, not the app.)_
+   - ~~SEC-02 (+ SEC-03)~~ ✅ done. Next: **SEC-04** (log endpoint scope) and **SEC-05** (error leakage).
 2. **Reliability backbone:** APP-02 + APP-03 + APP-12 (Deployment + probes + resources together), then APP-01/11/13 (build/embed hygiene).
 3. **UX quick wins:** UX-01 (toasts + confirm modal) → UX-02 (button loading) → UX-03 (log pod/container selector) → the Low UX items.
 4. **Polish & hardening:** remaining APP (rate limiting, timeouts, WS keepalive) and UX (a11y, status detail).
@@ -14,8 +15,8 @@ Each issue is a single markdown file in this directory, capturing **type**, **su
 | Severity | Low effort (do soon) | Medium effort (plan) | High effort (design) |
 |---|---|---|---|
 | **Critical** | — | — | — _(SEC-01 → WONT FIX, see Security table)_ |
-| **High** | — | SEC-02, SEC-04, UX-01, UX-03 | — |
-| **Medium** | SEC-03, APP-02, APP-03, APP-04, APP-06, APP-11, APP-13, UX-02, UX-04, UX-05, UX-07, UX-11, UX-12, UX-13, UX-15, UX-16, UX-17 | SEC-05*, APP-05, APP-07, APP-08, APP-09, APP-10, APP-14, UX-10, UX-14, UX-18 | — |
+| **High** | — | SEC-04, UX-01, UX-03 | — |
+| **Medium** | APP-02, APP-03, APP-04, APP-06, APP-11, APP-13, UX-02, UX-04, UX-05, UX-07, UX-11, UX-12, UX-13, UX-15, UX-16, UX-17 | SEC-05*, APP-05, APP-07, APP-08, APP-09, APP-10, APP-14, UX-10, UX-14, UX-18 | — |
 | **Low** | (see Medium column items that are Low) | | |
 
 \* SEC-05 is Low severity / Low effort (listed here for placement; it sits in the Low band).
@@ -26,8 +27,8 @@ Each issue is a single markdown file in this directory, capturing **type**, **su
 | ID | Title | Severity | Effort |
 |---|---|---|---|
 | SEC-01 | No authentication on any endpoint | Critical | High | ⛔ WONT FIX (gateway `SecurityPolicy` OIDC+JWT) |
-| SEC-02 | Secrets stored in a plaintext ConfigMap | High | Medium |
-| SEC-03 | Dashboard RBAC grants full ConfigMap CRUD (create) | Medium | Low |
+| SEC-02 | Secrets stored in a plaintext ConfigMap | High | Medium | ✅ FIXED (moved to `user-settings` Secret) |
+| SEC-03 | Dashboard RBAC grants full ConfigMap CRUD (create) | Medium | Low | ✅ FIXED (name-scoped Secret grant) |
 | SEC-04 | Log endpoint exposes any pod, no filtering | High | Medium |
 | SEC-05 | Raw K8s API error text returned to the client | Low | Low |
 | SEC-06 | workload-url allows open-redirect / javascript: | Low | Low |

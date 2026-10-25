@@ -6,10 +6,10 @@
 <title>Devpod</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@primer/css@latest/dist/primer.css">
 <style>
-[data-color-mode="light"]{--bgColor-default:#eff1f5;--bgColor-overlay:#e2e5ec;--bgColor-muted:#dce0e8;--bgColor-attentive:#dce0e8;--bgColor-inset:#dce0e8;--fgColor-default:#4c4f69;--fgColor-muted:#6e738d;--fgColor-accent:#d2a8ff;--fgColor-success:#85b98e;--fgColor-attention:#dfb077;--fgColor-danger:#e7799f;--borderColor-default:#acb0c0;--borderColor-muted:#cdd1da;--borderColor-accent:#d2a8ff;--borderColor-success:#85b98e;--borderColor-attention:#dfb077;--borderColor-danger:#e7799f;--shadow-lg:0 8px 24px rgba(0,0,0,.08);--shadow-md:0 4px 12px rgba(0,0,0,.06);--shadow-sm:0 1px 4px rgba(0,0,0,.04)}
-[data-color-mode="dark"]{--bgColor-default:#1e1e2e;--bgColor-overlay:#232434;--bgColor-muted:#292b3e;--bgColor-attentive:#292b3e;--bgColor-inset:#292b3e;--fgColor-default:#c1c9e1;--fgColor-muted:#a1a6b9;--fgColor-accent:#ca9ce6;--fgColor-success:#a7d7a1;--fgColor-attention:#e5c88e;--fgColor-danger:#e78284;--borderColor-default:#494d64;--borderColor-muted:#3a3c50;--borderColor-accent:#ca9ce6;--borderColor-success:#a7d7a1;--borderColor-attention:#e5c88e;--borderColor-danger:#e78284;--shadow-lg:0 8px 24px rgba(0,0,0,.4);--shadow-md:0 4px 12px rgba(0,0,0,.3);--shadow-sm:0 1px 4px rgba(0,0,0,.2)}
+[data-color-mode="light"]{--bgColor-default:#eff1f5;--bgColor-overlay:#e2e5ec;--bgColor-muted:#dce0e8;--bgColor-attentive:#dce0e8;--bgColor-inset:#dce0e8;--fgColor-default:#4c4f69;--fgColor-muted:#6e738d;--fgColor-accent:#d2a8ff;--fgColor-success:#85b98e;--fgColor-attention:#dfb077;--fgColor-danger:#e7799f;--borderColor-default:#acb0c0;--borderColor-muted:#cdd1da;--borderColor-accent:#d2a8ff;--borderColor-success:#85b98e;--borderColor-attention:#dfb077;--borderColor-danger:#e7799f;--status-good:#179299;--status-stopped:#6c6f85;--status-starting:#1e66f5;--status-bad:#d20f39;--header-bg:#dce0e8;--tabs-bg:#cdd1da;--tab-active-bg:#eff1f5;--tab-active-accent:#1e66f5;--action-logs:#b4637a;--action-terminate:#fe640b;--action-delete:#d20f39;--shadow-lg:0 8px 24px rgba(0,0,0,.08);--shadow-md:0 4px 12px rgba(0,0,0,.06);--shadow-sm:0 1px 4px rgba(0,0,0,.04)}
+[data-color-mode="dark"]{--bgColor-default:#1e1e2e;--bgColor-overlay:#232434;--bgColor-muted:#292b3e;--bgColor-attentive:#292b3e;--bgColor-inset:#292b3e;--fgColor-default:#c1c9e1;--fgColor-muted:#a1a6b9;--fgColor-accent:#ca9ce6;--fgColor-success:#a7d7a1;--fgColor-attention:#e5c88e;--fgColor-danger:#e78284;--borderColor-default:#494d64;--borderColor-muted:#3a3c50;--borderColor-accent:#ca9ce6;--borderColor-success:#a7d7a1;--borderColor-attention:#e5c88e;--borderColor-danger:#e78284;--status-good:#94e2d5;--status-stopped:#9399b2;--status-starting:#89b4fa;--status-bad:#f38ba8;--header-bg:#11111b;--tabs-bg:#181825;--tab-active-bg:#1e1e2e;--tab-active-accent:#89b4fa;--action-logs:#f5e0dc;--action-terminate:#fab387;--action-delete:#f38ba8;--shadow-lg:0 8px 24px rgba(0,0,0,.4);--shadow-md:0 4px 12px rgba(0,0,0,.3);--shadow-sm:0 1px 4px rgba(0,0,0,.2)}
 body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helvetica,Arial,sans-serif;background:var(--bgColor-default);color:var(--fgColor-default);min-height:100vh;margin:0;transition:background .2s,color .2s}
-.app-header{background:var(--bgColor-muted);border-bottom:1px solid var(--borderColor-default);padding:.75rem 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.app-header{background:var(--header-bg);border-bottom:1px solid var(--borderColor-default);padding:.75rem 1.5rem;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
 .app-header h1{font-size:1.1rem;font-weight:600;color:var(--fgColor-accent);letter-spacing:.02em;display:flex;align-items:center;gap:.5rem}
 .app-header h1 .subtitle{color:var(--fgColor-muted);font-weight:400;font-size:.9rem}
 .header-right{display:flex;align-items:center;gap:.5rem}
@@ -20,6 +20,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans",Helveti
 .user-menu-item:hover{background:var(--bgColor-muted)}
 .user-menu-item .octicon{color:var(--fgColor-muted)}
 .user-menu-sep{border:none;border-top:1px solid var(--borderColor-muted);margin:4px 0}
+.user-menu-label{padding:6px 16px 2px;font-size:11px;font-weight:600;letter-spacing:.06em;
+  text-transform:uppercase;color:var(--muted);user-select:none}
 main{padding:1.5rem;max-width:1200px;margin:0 auto}
 .section-title{font-size:.8rem;color:var(--fgColor-muted);text-transform:uppercase;letter-spacing:.08em;margin-bottom:.75rem;font-weight:600}
 .table-wrap{background:var(--bgColor-overlay);border:1px solid var(--borderColor-default);border-radius:6px;overflow:hidden;box-shadow:var(--shadow-sm)}
@@ -33,6 +35,7 @@ tr:last-child td{border-bottom:none}
 tr:hover td{background:var(--bgColor-attentive)}
 .name-cell{font-weight:600;color:var(--fgColor-default)}
 .name-cell-inner{display:flex;align-items:center;gap:.5rem}
+.workload-icon{flex:none;color:var(--fgColor-muted)}
 .workload-link{display:inline-flex;align-items:center;justify-content:center;width:16px;height:16px;padding:0;font-size:.75rem;font-weight:400;color:var(--fgColor-accent);text-decoration:none;border:1px solid var(--borderColor-accent);border-radius:2px;transition:background .1s,color .1s}
 .workload-link:hover{background:var(--fgColor-accent);color:var(--bgColor-default)}
 .toggle{position:relative;width:32px;height:16px;background:var(--bgColor-muted);border-radius:2px;cursor:pointer;border:1px solid var(--borderColor-default);transition:all .2s;flex-shrink:0}
@@ -43,17 +46,19 @@ tr:hover td{background:var(--bgColor-attentive)}
 .btn-icon{display:inline-flex;align-items:center;justify-content:center;width:32px;height:32px;padding:0;background:var(--bgColor-muted);border:1px solid var(--borderColor-default);border-radius:6px;color:var(--fgColor-default);cursor:pointer;transition:all .1s}
 .btn-icon:hover{background:var(--bgColor-attentive);border-color:var(--borderColor-accent)}
 .btn-icon .octicon{fill:currentColor}
-.btn-icon.danger{color:var(--fgColor-danger);border-color:var(--borderColor-danger)}
-.btn-icon.danger:hover{background:var(--fgColor-danger);color:var(--bgColor-default)}
-.btn-icon.warning{color:var(--fgColor-attention);border-color:var(--borderColor-attention)}
-.btn-icon.warning:hover{background:var(--fgColor-attention);color:var(--bgColor-default)}
+.btn-icon.danger{color:var(--action-delete);border-color:var(--action-delete)}
+.btn-icon.danger:hover{background:var(--action-delete);color:var(--bgColor-default)}
+.btn-icon.warning{color:var(--action-terminate);border-color:var(--action-terminate)}
+.btn-icon.warning:hover{background:var(--action-terminate);color:var(--bgColor-default)}
+.btn-icon.logs{color:var(--action-logs);border-color:var(--action-logs)}
+.btn-icon.logs:hover{background:var(--action-logs);color:var(--bgColor-default)}
 .status-badge{display:inline-flex;align-items:center;gap:.375rem;padding:.25rem .625rem;border-radius:2em;font-size:.7rem;font-weight:600;white-space:nowrap}
 .status-badge .octicon{width:12px;height:12px}
-.status-badge.success{background:color-mix(in srgb,var(--fgColor-success) 20%,transparent);color:var(--fgColor-success);border:1px solid var(--borderColor-success)}
-.status-badge.stopped{background:var(--bgColor-muted);color:var(--fgColor-muted);border:1px solid var(--borderColor-muted)}
-.status-badge.pending{background:color-mix(in srgb,var(--fgColor-attention) 20%,transparent);color:var(--fgColor-attention);border:1px solid var(--borderColor-attention)}
-.status-badge.running{background:color-mix(in srgb,var(--fgColor-accent) 22%,transparent);color:var(--fgColor-accent);border:1px solid var(--borderColor-accent)}
-.status-badge.failed{background:color-mix(in srgb,var(--fgColor-danger) 20%,transparent);color:var(--fgColor-danger);border:1px solid var(--borderColor-danger)}
+.status-badge.success{background:color-mix(in srgb,var(--status-good) 20%,transparent);color:var(--status-good);border:1px solid var(--status-good)}
+.status-badge.stopped{background:color-mix(in srgb,var(--status-stopped) 18%,transparent);color:var(--status-stopped);border:1px solid var(--status-stopped)}
+.status-badge.pending{background:color-mix(in srgb,var(--status-starting) 20%,transparent);color:var(--status-starting);border:1px solid var(--status-starting)}
+.status-badge.running{background:color-mix(in srgb,var(--status-starting) 22%,transparent);color:var(--status-starting);border:1px solid var(--status-starting)}
+.status-badge.failed{background:color-mix(in srgb,var(--status-bad) 20%,transparent);color:var(--status-bad);border:1px solid var(--status-bad)}
 /* Job status dot (used inline in the name cell next to the job name). */
 .job-dot{display:inline-block;width:10px;height:10px;border-radius:50%;flex:none}
 .modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:200;align-items:center;justify-content:center;backdrop-filter:blur(2px)}
@@ -91,12 +96,12 @@ tr:hover td{background:var(--bgColor-attentive)}
 ::-webkit-scrollbar-thumb:hover{background:var(--fgColor-muted)}
 @media(max-width:768px){.actions-cell{flex-direction:column}.app-header{padding:.75rem 1rem}main{padding:1rem}}
 /* Tabs */
-.tabs{display:flex;gap:.25rem;border-bottom:1px solid var(--borderColor-default);margin-bottom:1rem}
-.tab{appearance:none;background:none;border:none;cursor:pointer;font-family:inherit;font-size:.8rem;font-weight:600;color:var(--fgColor-muted);padding:.5rem 1rem;border-bottom:2px solid transparent;margin-bottom:-1px;transition:color .1s,border-color .1s;display:inline-flex;align-items:center;gap:.4rem}
-.tab:hover{color:var(--fgColor-default)}
-.tab.active{color:var(--fgColor-accent);border-bottom-color:var(--fgColor-accent)}
+.tabs{display:flex;gap:.25rem;background:var(--tabs-bg);border:1px solid var(--borderColor-default);border-radius:6px;padding:.25rem;margin-bottom:1rem}
+.tab{appearance:none;background:none;border:none;cursor:pointer;font-family:inherit;font-size:.8rem;font-weight:600;color:var(--fgColor-muted);padding:.5rem 1rem;border-radius:4px;margin-bottom:0;transition:color .1s,background .1s;display:inline-flex;align-items:center;gap:.4rem}
+.tab:hover{color:var(--fgColor-default);background:color-mix(in srgb,var(--bgColor-default) 40%,transparent)}
+.tab.active{background:var(--tab-active-bg);color:var(--tab-active-accent);box-shadow:var(--shadow-sm)}
 .tab .tab-count{font-size:.65rem;font-weight:600;color:var(--fgColor-muted);background:var(--bgColor-muted);border:1px solid var(--borderColor-muted);border-radius:2em;padding:0 .45em;line-height:1.4}
-.tab.active .tab-count{color:var(--fgColor-accent);border-color:var(--borderColor-accent)}
+.tab.active .tab-count{color:var(--tab-active-accent);border-color:var(--tab-active-accent)}
 .tab-panel{display:none}
 .tab-panel.active{display:block}
 /* Resource bars (node CPU / memory) */
@@ -114,25 +119,35 @@ tr:hover td{background:var(--bgColor-attentive)}
 <body>
 
 <svg style="display:none" xmlns="http://www.w3.org/2000/svg">
-<symbol id="octicon-gear" viewBox="0 0 24 24"><path d="M16 12a4 4 0 1 1-8 0 4 4 0 0 1 8 0Zm-1.5 0a2.5 2.5 0 1 0-5 0 2.5 2.5 0 0 0 5 0Z"/><path d="M12 1c.266 0 .532.009.797.028.763.055 1.345.617 1.512 1.304l.352 1.45c.019.078.09.171.225.221.247.089.49.19.728.302.13.061.246.044.315.002l1.275-.776c.603-.368 1.411-.353 1.99.147.402.349.78.726 1.128 1.129.501.578.515 1.386.147 1.99l-.776 1.274c-.042.069-.058.185.002.315.112.238.213.481.303.728.048.135.142.205.22.225l1.45.352c.687.167 1.249.749 1.303 1.512.038.531.038 1.063 0 1.594-.054.763-.616 1.345-1.303 1.512l-1.45.352c-.078.019-.171.09-.221.225-.089.248-.19.491-.302.728-.061.13-.044.246-.002.315l.776 1.275c.368.603.353 1.411-.147 1.99-.349.402-.726.78-1.129 1.128-.578.501-1.386.515-1.99.147l-1.274-.776c-.069-.042-.185-.058-.314.002a8.606 8.606 0 0 1-.729.303c-.135.048-.205.142-.225.22l-.352 1.45c-.167.687-.749 1.249-1.512 1.303-.531.038-1.063.038-1.594 0-.763-.054-1.345-.616-1.512-1.303l-.352-1.45c-.019-.078-.09-.171-.225-.221a8.138 8.138 0 0 1-.728-.302c-.13-.061-.246-.044-.315-.002l-1.275.776c-.603.368-1.411.353-1.99-.147-.402-.349-.78-.726-1.128-1.129-.501-.578-.515-1.386-.147-1.99l.776-1.274c.042-.069.058-.185-.002-.314a8.606 8.606 0 0 1-.303-.729c-.048-.135-.142-.205-.22-.225l-1.45-.352c-.687-.167-1.249-.749-1.304-1.512a11.158 11.158 0 0 1 0-1.594c.055-.763.617-1.345 1.304-1.512l1.45-.352c.078-.019.171-.09.221-.225.089-.248.19-.491.302-.728.061-.13.044-.246.002-.315l-.776-1.275c-.368-.603-.353-1.411.147-1.99.349-.402.726-.78 1.129-1.128.578-.501 1.386-.515 1.99-.147l1.274.776c.069.042.185.058.315-.002.238-.112.481-.213.728-.303.135-.048.205-.142.225-.22l.352-1.45c.167-.687.749-1.249 1.512-1.304C11.466 1.01 11.732 1 12 1Zm-.69 1.525c-.055.004-.135.05-.161.161l-.353 1.45a1.832 1.832 0 0 1-1.172 1.277 7.147 7.147 0 0 0-.6.249 1.833 1.833 0 0 1-1.734-.074l-1.274-.776c-.098-.06-.186-.036-.228 0a9.774 9.774 0 0 0-.976.976c-.036.042-.06.131 0 .228l.776 1.274c.314.529.342 1.18.074 1.734a7.147 7.147 0 0 0-.249.6 1.831 1.831 0 0 1-1.278 1.173l-1.45.351c-.11.027-.156.107-.16.162a9.63 9.63 0 0 0 0 1.38c.004.055.05.135.161.161l1.45.353a1.832 1.832 0 0 1 1.277 1.172c.074.204.157.404.249.6.268.553.24 1.204-.074 1.733l-.776 1.275c-.06.098-.036.186 0 .228.301.348.628.675.976.976.042.036.131.06.228 0l1.274-.776a1.83 1.83 0 0 1 1.734-.075c.196.093.396.176.6.25a1.831 1.831 0 0 1 1.173 1.278l.351 1.45c.027.11.107.156.162.16a9.63 9.63 0 0 0 1.38 0c.055-.004.135-.05.161-.161l.353-1.45a1.834 1.834 0 0 1 1.172-1.278 6.82 6.82 0 0 0 .6-.248 1.831 1.831 0 0 1 1.733.074l1.275.776c.098.06.186.036.228 0 .348-.301.675-.628.976-.976.036-.042.06-.131 0-.228l-.776-1.275a1.834 1.834 0 0 1-.075-1.733c.093-.196.176-.396.25-.6a1.831 1.831 0 0 1 1.278-1.173l1.45-.351c.11-.027.156-.107.16-.162a9.63 9.63 0 0 0 0-1.38c-.004-.055-.05-.135-.161-.161l-1.45-.353c-.626-.152-1.08-.625-1.278-1.172a6.576 6.576 0 0 0-.248-.6 1.833 1.833 0 0 1 .074-1.734l.776-1.274c.06-.098.036-.186 0-.228a9.774 9.774 0 0 0-.976-.976c-.042-.036-.131-.06-.228 0l-1.275.776a1.831 1.831 0 0 1-1.733.074 6.88 6.88 0 0 0-.6-.249 1.835 1.835 0 0 1-1.173-1.278l-.351-1.45c-.027-.11-.107-.156-.162-.16a9.63 9.63 0 0 0-1.38 0Z"/></symbol>
-<symbol id="octicon-key" viewBox="0 0 24 24"><path d="M16.75 8.5a1.25 1.25 0 1 0 0-2.5 1.25 1.25 0 0 0 0 2.5Z"/><path d="M15.75 0a8.25 8.25 0 1 1-2.541 16.101l-1.636 1.636a1.744 1.744 0 0 1-1.237.513H9.25a.25.25 0 0 0-.25.25v1.448a.876.876 0 0 1-.256.619l-.214.213a.75.75 0 0 1-.545.22H5.25a.25.25 0 0 0-.25.25v1A1.75 1.75 0 0 1 3.25 24h-1.5A1.75 1.75 0 0 1 0 22.25v-2.836c0-.464.185-.908.513-1.236l7.386-7.388A8.249 8.249 0 0 1 15.75 0ZM9 8.25a6.733 6.733 0 0 0 .463 2.462.75.75 0 0 1-.168.804l-7.722 7.721a.25.25 0 0 0-.073.177v2.836c0 .138.112.25.25.25h1.5a.25.25 0 0 0 .25-.25v-1c0-.966.784-1.75 1.75-1.75H7.5v-1c0-.966.784-1.75 1.75-1.75h1.086a.25.25 0 0 0 .177-.073l1.971-1.972a.75.75 0 0 1 .804-.168A6.75 6.75 0 1 0 9 8.25Z"/></symbol>
-<symbol id="octicon-lock" viewBox="0 0 24 24"><path d="M6 9V7.25C6 3.845 8.503 1 12 1s6 2.845 6 6.25V9h.5a2.5 2.5 0 0 1 2.5 2.5v8a2.5 2.5 0 0 1-2.5 2.5h-13A2.5 2.5 0 0 1 3 19.5v-8A2.5 2.5 0 0 1 5.5 9Zm-1.5 2.5v8a1 1 0 0 0 1 1h13a1 1 0 0 0 1-1v-8a1 1 0 0 0-1-1h-13a1 1 0 0 0-1 1Zm3-4.25V9h9V7.25c0-2.67-1.922-4.75-4.5-4.75-2.578 0-4.5 2.08-4.5 4.75Z"/></symbol>
-<symbol id="octicon-trash" viewBox="0 0 24 24"><path d="M16 1.75V3h5.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H8V1.75C8 .784 8.784 0 9.75 0h4.5C15.216 0 16 .784 16 1.75Zm-6.5 0V3h5V1.75a.25.25 0 0 0-.25-.25h-4.5a.25.25 0 0 0-.25.25ZM4.997 6.178a.75.75 0 1 0-1.493.144L4.916 20.92a1.75 1.75 0 0 0 1.742 1.58h10.684a1.75 1.75 0 0 0 1.742-1.581l1.413-14.597a.75.75 0 0 0-1.494-.144l-1.412 14.596a.25.25 0 0 1-.249.226H6.658a.25.25 0 0 1-.249-.226L4.997 6.178Z"/><path d="M9.206 7.501a.75.75 0 0 1 .793.705l.5 8.5A.75.75 0 1 1 9 16.794l-.5-8.5a.75.75 0 0 1 .705-.793Zm6.293.793A.75.75 0 1 0 14 8.206l-.5 8.5a.75.75 0 0 0 1.498.088l.5-8.5Z"/></symbol>
-<symbol id="octicon-pulse" viewBox="0 0 24 24"><path d="M9.002 2.5a.75.75 0 0 1 .691.464l6.302 15.305 2.56-6.301a.75.75 0 0 1 .695-.468h4a.75.75 0 0 1 0 1.5h-3.495l-3.06 7.532a.75.75 0 0 1-1.389.004L8.997 5.21l-3.054 7.329A.75.75 0 0 1 5.25 13H.75a.75.75 0 0 1 0-1.5h4l3.558-8.538a.75.75 0 0 1 .694-.462Z"/></symbol>
+<symbol id="octicon-gear" viewBox="0 0 16 16"><path d="M8 0a8.2 8.2 0 0 1 .701.031C9.444.095 9.99.645 10.16 1.29l.288 1.107c.018.066.079.158.212.224.231.114.454.243.668.386.123.082.233.09.299.071l1.103-.303c.644-.176 1.392.021 1.82.63.27.385.506.792.704 1.218.315.675.111 1.422-.364 1.891l-.814.806c-.049.048-.098.147-.088.294.016.257.016.515 0 .772-.01.147.038.246.088.294l.814.806c.475.469.679 1.216.364 1.891a7.977 7.977 0 0 1-.704 1.217c-.428.61-1.176.807-1.82.63l-1.102-.302c-.067-.019-.177-.011-.3.071a5.909 5.909 0 0 1-.668.386c-.133.066-.194.158-.211.224l-.29 1.106c-.168.646-.715 1.196-1.458 1.26a8.006 8.006 0 0 1-1.402 0c-.743-.064-1.289-.614-1.458-1.26l-.289-1.106c-.018-.066-.079-.158-.212-.224a5.738 5.738 0 0 1-.668-.386c-.123-.082-.233-.09-.299-.071l-1.103.303c-.644.176-1.392-.021-1.82-.63a8.12 8.12 0 0 1-.704-1.218c-.315-.675-.111-1.422.363-1.891l.815-.806c.05-.048.098-.147.088-.294a6.214 6.214 0 0 1 0-.772c.01-.147-.038-.246-.088-.294l-.815-.806C.635 6.045.431 5.298.746 4.623a7.92 7.92 0 0 1 .704-1.217c.428-.61 1.176-.807 1.82-.63l1.102.302c.067.019.177.011.3-.071.214-.143.437-.272.668-.386.133-.066.194-.158.211-.224l.29-1.106C6.009.645 6.556.095 7.299.03 7.53.01 7.764 0 8 0Zm-.571 1.525c-.036.003-.108.036-.137.146l-.289 1.105c-.147.561-.549.967-.998 1.189-.173.086-.34.183-.5.29-.417.278-.97.423-1.529.27l-1.103-.303c-.109-.03-.175.016-.195.045-.22.312-.412.644-.573.99-.014.031-.021.11.059.19l.815.806c.411.406.562.957.53 1.456a4.709 4.709 0 0 0 0 .582c.032.499-.119 1.05-.53 1.456l-.815.806c-.081.08-.073.159-.059.19.162.346.353.677.573.989.02.03.085.076.195.046l1.102-.303c.56-.153 1.113-.008 1.53.27.161.107.328.204.501.29.447.222.85.629.997 1.189l.289 1.105c.029.109.101.143.137.146a6.6 6.6 0 0 0 1.142 0c.036-.003.108-.036.137-.146l.289-1.105c.147-.561.549-.967.998-1.189.173-.086.34-.183.5-.29.417-.278.97-.423 1.529-.27l1.103.303c.109.029.175-.016.195-.045.22-.313.411-.644.573-.99.014-.031.021-.11-.059-.19l-.815-.806c-.411-.406-.562-.957-.53-1.456a4.709 4.709 0 0 0 0-.582c-.032-.499.119-1.05.53-1.456l.815-.806c.081-.08.073-.159.059-.19a6.464 6.464 0 0 0-.573-.989c-.02-.03-.085-.076-.195-.046l-1.102.303c-.56.153-1.113.008-1.53-.27a4.44 4.44 0 0 0-.501-.29c-.447-.222-.85-.629-.997-1.189l-.289-1.105c-.029-.11-.101-.143-.137-.146a6.6 6.6 0 0 0-1.142 0ZM11 8a3 3 0 1 1-6 0 3 3 0 0 1 6 0ZM9.5 8a1.5 1.5 0 1 0-3.001.001A1.5 1.5 0 0 0 9.5 8Z"/></symbol>
+<symbol id="octicon-key" viewBox="0 0 16 16"><path d="M10.5 0a5.499 5.499 0 1 1-1.288 10.848l-.932.932a.749.749 0 0 1-.53.22H7v.75a.749.749 0 0 1-.22.53l-.5.5a.749.749 0 0 1-.53.22H5v.75a.749.749 0 0 1-.22.53l-.5.5a.749.749 0 0 1-.53.22h-2A1.75 1.75 0 0 1 0 14.25v-2c0-.199.079-.389.22-.53l4.932-4.932A5.5 5.5 0 0 1 10.5 0Zm-4 5.5c-.001.431.069.86.205 1.269a.75.75 0 0 1-.181.768L1.5 12.56v1.69c0 .138.112.25.25.25h1.69l.06-.06v-1.19a.75.75 0 0 1 .75-.75h1.19l.06-.06v-1.19a.75.75 0 0 1 .75-.75h1.19l1.023-1.025a.75.75 0 0 1 .768-.18A4 4 0 1 0 6.5 5.5ZM11 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/></symbol>
+<symbol id="octicon-sign-out" viewBox="0 0 16 16"><path d="M2 2.75C2 1.784 2.784 1 3.75 1h2.5a.75.75 0 0 1 0 1.5h-2.5a.25.25 0 0 0-.25.25v10.5c0 .138.112.25.25.25h2.5a.75.75 0 0 1 0 1.5h-2.5A1.75 1.75 0 0 1 2 13.25Zm10.44 4.5-1.97-1.97a.749.749 0 0 1 .326-1.275.749.749 0 0 1 .734.215l3.25 3.25a.75.75 0 0 1 0 1.06l-3.25 3.25a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734l1.97-1.97H6.75a.75.75 0 0 1 0-1.5Z"/></symbol>
+<symbol id="octicon-lock" viewBox="0 0 16 16"><path d="M4 4a4 4 0 0 1 8 0v2h.25c.966 0 1.75.784 1.75 1.75v5.5A1.75 1.75 0 0 1 12.25 15h-8.5A1.75 1.75 0 0 1 2 13.25v-5.5C2 6.784 2.784 6 3.75 6H4Zm8.25 3.5h-8.5a.25.25 0 0 0-.25.25v5.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25v-5.5a.25.25 0 0 0-.25-.25ZM10.5 6V4a2.5 2.5 0 1 0-5 0v2Z"/></symbol>
+<symbol id="octicon-trash" viewBox="0 0 16 16"><path d="M11 1.75V3h2.25a.75.75 0 0 1 0 1.5H2.75a.75.75 0 0 1 0-1.5H5V1.75C5 .784 5.784 0 6.75 0h2.5C10.216 0 11 .784 11 1.75ZM4.496 6.675l.66 6.6a.25.25 0 0 0 .249.225h5.19a.25.25 0 0 0 .249-.225l.66-6.6a.75.75 0 0 1 1.492.149l-.66 6.6A1.748 1.748 0 0 1 10.595 15h-5.19a1.75 1.75 0 0 1-1.741-1.575l-.66-6.6a.75.75 0 1 1 1.492-.15ZM6.5 1.75V3h3V1.75a.25.25 0 0 0-.25-.25h-2.5a.25.25 0 0 0-.25.25Z"/></symbol>
+<symbol id="octicon-pulse" viewBox="0 0 16 16"><path d="M6 2c.306 0 .582.187.696.471L10 10.731l1.304-3.26A.751.751 0 0 1 12 7h3.25a.75.75 0 0 1 0 1.5h-2.742l-1.812 4.528a.751.751 0 0 1-1.392 0L6 4.77 4.696 8.03A.75.75 0 0 1 4 8.5H.75a.75.75 0 0 1 0-1.5h2.742l1.812-4.529A.751.751 0 0 1 6 2Z"/></symbol>
 <symbol id="octicon-sun" viewBox="0 0 16 16"><path d="M8 12a4 4 0 1 1 0-8 4 4 0 0 1 0 8Zm0-1.5a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5Zm5.657-8.157a.75.75 0 0 1 0 1.061l-1.061 1.06a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734l1.06-1.06a.75.75 0 0 1 1.06 0Zm-9.193 9.193a.75.75 0 0 1 0 1.06l-1.06 1.061a.75.75 0 1 1-1.061-1.06l1.06-1.061a.75.75 0 0 1 1.061 0ZM8 0a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0V.75A.75.75 0 0 1 8 0ZM3 8a.75.75 0 0 1-.75.75H.75a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 3 8Zm13 0a.75.75 0 0 1-.75.75h-1.5a.75.75 0 0 1 0-1.5h1.5A.75.75 0 0 1 16 8Zm-8 5a.75.75 0 0 1 .75.75v1.5a.75.75 0 0 1-1.5 0v-1.5A.75.75 0 0 1 8 13Zm3.536-1.464a.75.75 0 0 1 1.06 0l1.061 1.06a.75.75 0 0 1-1.06 1.061l-1.061-1.06a.75.75 0 0 1 0-1.061ZM2.343 2.343a.75.75 0 0 1 1.061 0l1.06 1.061a.751.751 0 0 1-.018 1.042.751.751 0 0 1-1.042.018l-1.06-1.06a.75.75 0 0 1 0-1.06Z"/></symbol>
 <symbol id="octicon-moon" viewBox="0 0 16 16"><path d="M9.598 1.591a.749.749 0 0 1 .785-.175 7.001 7.001 0 1 1-8.967 8.967.75.75 0 0 1 .961-.96 5.5 5.5 0 0 0 7.046-7.046.75.75 0 0 1 .175-.786Zm1.616 1.945a7 7 0 0 1-7.678 7.678 5.499 5.499 0 1 0 7.678-7.678Z"/></symbol>
 <symbol id="octicon-stop" viewBox="0 0 16 16"><path d="M4.47.22A.749.749 0 0 1 5 0h6c.199 0 .389.079.53.22l4.25 4.25c.141.14.22.331.22.53v6a.749.749 0 0 1-.22.53l-4.25 4.25A.749.749 0 0 1 11 16H5a.749.749 0 0 1-.53-.22L.22 11.53A.749.749 0 0 1 0 11V5c0-.199.079-.389.22-.53Zm.84 1.28L1.5 5.31v5.38l3.81 3.81h5.38l3.81-3.81V5.31L10.69 1.5ZM8 4a.75.75 0 0 1 .75.75v3.5a.75.75 0 0 1-1.5 0v-3.5A.75.75 0 0 1 8 4Zm0 8a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/></symbol>
-<symbol id="octicon-x-mark" viewBox="0 0 16 16"><path d="M3.7 1.3a1 1 0 0 1 1.4 0l3.6 3.6 3.6-3.6a1 1 0 0 1 1.4 1.4L10.1 6.3l3.6 3.6a1 1 0 0 1-1.4 1.4L8.7 7.7l-3.6 3.6a1 1 0 0 1-1.4-1.4L7.3 6.3 3.7 2.7a1 1 0 0 1 0-1.4Z"/></symbol>
+<symbol id="octicon-x-mark" viewBox="0 0 16 16"><path d="M3.72 3.72a.75.75 0 0 1 1.06 0L8 6.94l3.22-3.22a.749.749 0 0 1 1.275.326.749.749 0 0 1-.215.734L9.06 8l3.22 3.22a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215L8 9.06l-3.22 3.22a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042L6.94 8 3.72 4.78a.75.75 0 0 1 0-1.06Z"/></symbol>
 <symbol id="octicon-info" viewBox="0 0 16 16"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z"/></symbol>
 <symbol id="octicon-alert" viewBox="0 0 16 16"><path d="M6.457 1.047c.659-1.234 2.427-1.234 3.086 0l6.082 11.378A1.75 1.75 0 0 1 14.082 15H1.918a1.75 1.75 0 0 1-1.543-2.575Zm1.763.707a.25.25 0 0 0-.44 0L1.698 13.132a.25.25 0 0 0 .22.368h12.164a.25.25 0 0 0 .22-.368Zm.53 3.996v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 11a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></symbol>
 <symbol id="octicon-check-circle" viewBox="0 0 16 16"><path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm1.5 0a6.5 6.5 0 1 0 13 0 6.5 6.5 0 0 0-13 0Zm10.28-1.72-4.5 4.5a.75.75 0 0 1-1.06 0l-2-2a.751.751 0 0 1 .018-1.042.751.751 0 0 1 1.042-.018l1.47 1.47 3.97-3.97a.751.751 0 0 1 1.042.018.751.751 0 0 1 .018 1.042Z"/></symbol>
-<symbol id="octicon-beaker" viewBox="0 0 24 24"><path d="M19 3H5c-.55 0-1 .45-1 1v2.5c0 .41.24.77.6.95l8.24 4.45-3.44 6.07c-.31.55.1 1.2.7 1.2H16c.28 0 .52-.16.65-.4l2.6-5.6c.13-.28.13-.6 0-.88l-3-5.6c-.13-.28-.43-.4-.65-.4h-4.9l-5.1-2.77V4h14.2c.55 0 1-.45 1-1V4c0-.55-.45-1-1-1Z"/></symbol><symbol id="octicon-cloud" viewBox="0 0 24 24"><path d="M3.103 10.107c0-4.244 3.445-7.607 7.733-7.607 3.19 0 5.912 1.858 7.099 4.563l.01.022.001.006C21.348 7.345 24 10.095 24 13.536 24 17.148 21.076 20 17.431 20H5.017C2.23 20 0 17.83 0 15.06a4.899 4.899 0 0 1 3.112-4.581 7.696 7.696 0 0 1-.009-.372ZM10.836 4c-3.485 0-6.233 2.717-6.233 6.107 0 .284.022.602.052.756a.75.75 0 0 1-.552.869c-1.52.385-2.603 1.712-2.603 3.328 0 1.917 1.532 3.44 3.517 3.44h12.414c2.843 0 5.069-2.206 5.069-4.964 0-2.759-2.226-4.965-5.069-4.965a.75.75 0 0 1-.696-.47l-.179-.446C15.606 5.5 13.424 4 10.836 4Z"/></symbol>
+<symbol id="octicon-beaker" viewBox="0 0 16 16"><path d="M5 5.782V2.5h-.25a.75.75 0 0 1 0-1.5h6.5a.75.75 0 0 1 0 1.5H11v3.282l3.666 5.76C15.619 13.04 14.543 15 12.767 15H3.233c-1.776 0-2.852-1.96-1.899-3.458Zm-2.4 6.565a.75.75 0 0 0 .633 1.153h9.534a.75.75 0 0 0 .633-1.153L12.225 10.5h-8.45ZM9.5 2.5h-3V6c0 .143-.04.283-.117.403L4.73 9h6.54L9.617 6.403A.746.746 0 0 1 9.5 6Z"/></symbol><symbol id="octicon-cloud" viewBox="0 0 16 16"><path d="M2 7.25A5.225 5.225 0 0 1 7.25 2a5.222 5.222 0 0 1 4.767 3.029A4.472 4.472 0 0 1 16 9.5c0 2.505-1.995 4.5-4.5 4.5h-8A3.474 3.474 0 0 1 0 10.5c0-1.41.809-2.614 2.001-3.17Zm1.54.482a.75.75 0 0 1-.556.832c-.86.22-1.484.987-1.484 1.936 0 1.124.876 2 2 2h8c1.676 0 3-1.324 3-3s-1.324-3-3-3a.75.75 0 0 1-.709-.504A3.72 3.72 0 0 0 7.25 3.5C5.16 3.5 3.5 5.16 3.5 7.25c.002.146.014.292.035.436l.004.036.001.008Z"/></symbol>
+<symbol id="octicon-rocket" viewBox="0 0 16 16"><path d="M14.064 0h.186C15.216 0 16 .784 16 1.75v.186a8.752 8.752 0 0 1-2.564 6.186l-.458.459c-.314.314-.641.616-.979.904v3.207c0 .608-.315 1.172-.833 1.49l-2.774 1.707a.749.749 0 0 1-1.11-.418l-.954-3.102a1.214 1.214 0 0 1-.145-.125L3.754 9.816a1.218 1.218 0 0 1-.124-.145L.528 8.717a.749.749 0 0 1-.418-1.11l1.71-2.774A1.748 1.748 0 0 1 3.31 4h3.204c.288-.338.59-.665.904-.979l.459-.458A8.749 8.749 0 0 1 14.064 0ZM8.938 3.623h-.002l-.458.458c-.76.76-1.437 1.598-2.02 2.5l-1.5 2.317 2.143 2.143 2.317-1.5c.902-.583 1.74-1.26 2.499-2.02l.459-.458a7.25 7.25 0 0 0 2.123-5.127V1.75a.25.25 0 0 0-.25-.25h-.186a7.249 7.249 0 0 0-5.125 2.123ZM3.56 14.56c-.732.732-2.334 1.045-3.005 1.148a.234.234 0 0 1-.201-.064.234.234 0 0 1-.064-.201c.103-.671.416-2.273 1.15-3.003a1.502 1.502 0 1 1 2.12 2.12Zm6.94-3.935c-.088.06-.177.118-.266.175l-2.35 1.521.548 1.783 1.949-1.2a.25.25 0 0 0 .119-.213ZM3.678 8.116 5.2 5.766c.058-.09.117-.178.176-.266H3.309a.25.25 0 0 0-.213.119l-1.2 1.95ZM12 5a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z"/></symbol>
+<symbol id="octicon-cloud-offline" viewBox="0 0 16 16"><path d="M7.25 2c-.69 0-1.351.13-1.957.371a.75.75 0 1 0 .554 1.394c.43-.17.903-.265 1.403-.265a3.72 3.72 0 0 1 3.541 2.496.75.75 0 0 0 .709.504c1.676 0 3 1.324 3 3a3 3 0 0 1-.681 1.92.75.75 0 0 0 1.156.955A4.496 4.496 0 0 0 16 9.5a4.472 4.472 0 0 0-3.983-4.471A5.222 5.222 0 0 0 7.25 2ZM.72 1.72a.75.75 0 0 1 1.06 0l2.311 2.31c.03.025.056.052.08.08l8.531 8.532.035.034 2.043 2.044a.749.749 0 0 1-.326 1.275.749.749 0 0 1-.734-.215l-1.8-1.799a4.54 4.54 0 0 1-.42.019h-8A3.474 3.474 0 0 1 0 10.5c0-1.41.809-2.614 2.001-3.17a5.218 5.218 0 0 1 .646-2.622L.72 2.78a.75.75 0 0 1 0-1.06ZM3.5 7.25c.004.161.018.322.041.481a.75.75 0 0 1-.557.833c-.86.22-1.484.986-1.484 1.936 0 1.124.876 2 2 2h6.94L3.771 5.832A3.788 3.788 0 0 0 3.5 7.25Z"/></symbol>
+<symbol id="octicon-webhook" viewBox="0 0 16 16"><path d="M5.5 4.25a2.25 2.25 0 0 1 4.5 0 .75.75 0 0 0 1.5 0 3.75 3.75 0 1 0-6.14 2.889l-2.272 4.258a.75.75 0 0 0 1.324.706L7 7.25a.75.75 0 0 0-.309-1.015A2.25 2.25 0 0 1 5.5 4.25Z"/><path d="M7.364 3.607a.75.75 0 0 1 1.03.257l2.608 4.349a3.75 3.75 0 1 1-.628 6.785.75.75 0 0 1 .752-1.299 2.25 2.25 0 1 0-.033-3.88.75.75 0 0 1-1.03-.256L7.107 4.636a.75.75 0 0 1 .257-1.03Z"/><path d="M2.9 8.776A.75.75 0 0 1 2.625 9.8 2.25 2.25 0 1 0 6 11.75a.75.75 0 0 1 .75-.751h5.5a.75.75 0 0 1 0 1.5H7.425a3.751 3.751 0 1 1-5.55-3.998.75.75 0 0 1 1.024.274Z"/></symbol>
+<symbol id="octicon-log" viewBox="0 0 16 16"><path d="M5 8.25a.75.75 0 0 1 .75-.75h4a.75.75 0 0 1 0 1.5h-4A.75.75 0 0 1 5 8.25ZM4 10.5A.75.75 0 0 0 4 12h4a.75.75 0 0 0 0-1.5H4Z"/><path d="M13-.005c1.654 0 3 1.328 3 3 0 .982-.338 1.933-.783 2.818-.443.879-1.028 1.758-1.582 2.588l-.011.017c-.568.853-1.104 1.659-1.501 2.446-.398.789-.623 1.494-.623 2.136a1.5 1.5 0 1 0 2.333-1.248.75.75 0 0 1 .834-1.246A3 3 0 0 1 13 16H3a3 3 0 0 1-3-3c0-1.582.891-3.135 1.777-4.506.209-.322.418-.637.623-.946.473-.709.923-1.386 1.287-2.048H2.51c-.576 0-1.381-.133-1.907-.783A2.68 2.68 0 0 1 0 2.995a3 3 0 0 1 3-3Zm0 1.5a1.5 1.5 0 0 0-1.5 1.5c0 .476.223.834.667 1.132A.75.75 0 0 1 11.75 5.5H5.368c-.467 1.003-1.141 2.015-1.773 2.963-.192.289-.381.571-.558.845C2.13 10.711 1.5 11.916 1.5 13A1.5 1.5 0 0 0 3 14.5h7.401A2.989 2.989 0 0 1 10 13c0-.979.338-1.928.784-2.812.441-.874 1.023-1.748 1.575-2.576l.017-.026c.568-.853 1.103-1.658 1.501-2.448.398-.79.623-1.497.623-2.143 0-.838-.669-1.5-1.5-1.5Zm-10 0a1.5 1.5 0 0 0-1.5 1.5c0 .321.1.569.27.778.097.12.325.227.74.227h7.674A2.737 2.737 0 0 1 10 2.995c0-.546.146-1.059.401-1.5Z"/></symbol>
+<symbol id="octicon-issue-reopened" viewBox="0 0 16 16"><path d="M5.029 2.217a6.5 6.5 0 0 1 9.437 5.11.75.75 0 1 0 1.492-.154 8 8 0 0 0-14.315-4.03L.427 1.927A.25.25 0 0 0 0 2.104V5.75A.25.25 0 0 0 .25 6h3.646a.25.25 0 0 0 .177-.427L2.715 4.215a6.491 6.491 0 0 1 2.314-1.998ZM1.262 8.169a.75.75 0 0 0-1.22.658 8.001 8.001 0 0 0 14.315 4.03l1.216 1.216a.25.25 0 0 0 .427-.177V10.25a.25.25 0 0 0-.25-.25h-3.646a.25.25 0 0 0-.177.427l1.358 1.358a6.501 6.501 0 0 1-11.751-3.11.75.75 0 0 0-.272-.506Z"/><path d="M9.06 9.06a1.5 1.5 0 1 1-2.12-2.12 1.5 1.5 0 0 1 2.12 2.12Z"/></symbol>
+<symbol id="octicon-crosshairs" viewBox="0 0 16 16"><path d="M14 8A6 6 0 1 1 2 8a6 6 0 0 1 12 0Zm-1.5 0a4.5 4.5 0 1 0-9 0 4.5 4.5 0 0 0 9 0Z"/><path d="M5 7.25a.75.75 0 0 1 0 1.5H1a.75.75 0 0 1 0-1.5Zm3-7a.75.75 0 0 1 .75.75v4a.75.75 0 0 1-1.5 0V1A.75.75 0 0 1 8 .25Zm7 7a.75.75 0 0 1 0 1.5h-4a.75.75 0 0 1 0-1.5Zm-7 3a.75.75 0 0 1 .75.75v4a.75.75 0 0 1-1.5 0v-4a.75.75 0 0 1 .75-.75Z"/></symbol>
 <symbol id="octicon-link-external" viewBox="0 0 16 16"><path d="M3.75 2h3.5a.75.75 0 0 1 0 1.5h-3.5a.25.25 0 0 0-.25.25v8.5c0 .138.112.25.25.25h8.5a.25.25 0 0 0 .25-.25v-3.5a.75.75 0 0 1 1.5 0v3.5A1.75 1.75 0 0 1 12.25 14h-8.5A1.75 1.75 0 0 1 2 12.25v-8.5C2 2.784 2.784 2 3.75 2Zm6.854-1h4.146a.25.25 0 0 1 .25.25v4.146a.25.25 0 0 1-.427.177L13.03 4.03 9.28 7.78a.751.751 0 0 1-1.042-.018.751.751 0 0 1-.018-1.042l3.75-3.75-1.543-1.543A.25.25 0 0 1 10.604 1Z"/></symbol>
+<symbol id="octicon-terminal" viewBox="0 0 16 16"><path d="M0 2.75C0 1.784.784 1 1.75 1h12.5c.966 0 1.75.784 1.75 1.75v10.5A1.75 1.75 0 0 1 14.25 15H1.75A1.75 1.75 0 0 1 0 13.25Zm1.75-.25a.25.25 0 0 0-.25.25v10.5c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25V2.75a.25.25 0 0 0-.25-.25ZM7.25 8a.749.749 0 0 1-.22.53l-2.25 2.25a.749.749 0 0 1-1.275-.326.749.749 0 0 1 .215-.734L5.44 8 3.72 6.28a.749.749 0 0 1 .326-1.275.749.749 0 0 1 .734.215l2.25 2.25c.141.14.22.331.22.53Zm1.5 1.5h3a.75.75 0 0 1 0 1.5h-3a.75.75 0 0 1 0-1.5Z"/></symbol>
+<symbol id="octicon-server" viewBox="0 0 16 16"><path d="M1.75 1h12.5c.966 0 1.75.784 1.75 1.75v4c0 .372-.116.717-.314 1 .198.283.314.628.314 1v4a1.75 1.75 0 0 1-1.75 1.75H1.75A1.75 1.75 0 0 1 0 12.75v-4c0-.358.109-.707.314-1a1.739 1.739 0 0 1-.314-1v-4C0 1.784.784 1 1.75 1ZM1.5 2.75v4c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25v-4a.25.25 0 0 0-.25-.25H1.75a.25.25 0 0 0-.25.25Zm.25 5.75a.25.25 0 0 0-.25.25v4c0 .138.112.25.25.25h12.5a.25.25 0 0 0 .25-.25v-4a.25.25 0 0 0-.25-.25ZM7 4.75A.75.75 0 0 1 7.75 4h4.5a.75.75 0 0 1 0 1.5h-4.5A.75.75 0 0 1 7 4.75ZM7.75 10h4.5a.75.75 0 0 1 0 1.5h-4.5a.75.75 0 0 1 0-1.5ZM3 4.75A.75.75 0 0 1 3.75 4h.5a.75.75 0 0 1 0 1.5h-.5A.75.75 0 0 1 3 4.75ZM3.75 10h.5a.75.75 0 0 1 0 1.5h-.5a.75.75 0 0 1 0-1.5Z"/></symbol>
+<symbol id="octicon-vscode" viewBox="0 0 16 16"><path fill="currentColor" fill-rule="evenodd" d="M11.0977 1.01264c.1781-.030611.3616-.00542.5244.07325l2.8828 1.39453c.3025.14648.4951.45487.4951.79297v9.45311c-.0001.3379-.1928.6455-.4951.792l-2.8828 1.3936c-.1074.0525-.2253.0822-.3448.0869-.1192.0045-.2386-.0155-.3496-.0596-.1128-.0437-.2148-.1112-.2998-.1973L5.10938 9.68257 2.70605 11.5166c-.10824.0823-.24206.1241-.37793.1181-.13595-.0061-.26569-.0596-.36621-.1514l-.77148-.705c-.06008-.0551-.1078-.1227-.14063-.1973-.03273-.0745-.04979-.1549-.0498-.2363 0-.0815.01698-.1627.0498-.2373.03281-.0744.08069-.14135.14063-.19632l2.08398-1.91113-2.08398-1.91211c-.05994-.05502-.10786-.12182-.14063-.19629-.03276-.07447-.04974-.15497-.0498-.23633 0-.08152.01698-.16268.0498-.2373.03278-.07447.08069-.14128.14063-.19629l.77148-.70606c.10049-.09162.23036-.14527.36621-.15136.13586-.00602.26969.03583.37793.11816l2.40333 1.83399 5.51852-5.0586c.1271-.12866.2915-.21441.4698-.24512M7.31543 7.99995 11.502 11.1933v-.1934H11.5V5.99995h.002V4.80561z" clip-rule="evenodd"/></symbol>
 </svg>
 
 <header class="app-header">
   <h1>
-    <svg class="octicon" width="24" height="24"><use href="#octicon-pulse"/></svg>
+    <svg class="octicon" width="24" height="24"><use href="#octicon-rocket"/></svg>
     Devpod <span class="subtitle">Control Panel</span>
   </h1>
   <div class="header-right">
@@ -141,9 +156,19 @@ tr:hover td{background:var(--bgColor-attentive)}
         <svg class="octicon" width="16" height="16"><use href="#octicon-gear"/></svg>
       </button>
       <div class="user-menu" id="userMenu">
+        <div class="user-menu-label">Modes</div>
+        <button class="user-menu-item" onclick="cycleTheme()" id="themeMenuItem">
+          <svg class="octicon" width="16" height="16" id="themeMenuIcon"><use href="#octicon-moon"/></svg>
+          <span id="themeMenuLabel">Switch to Dark</span>
+        </button>
+        <button class="user-menu-item" onclick="cycleViewMode()" id="viewModeMenuItem">
+          <svg class="octicon" width="16" height="16" id="viewModeMenuIcon"><use href="#octicon-cloud"/></svg>
+          <span id="viewModeMenuLabel">Switch to Advanced view</span>
+        </button>
+        <hr class="user-menu-sep">
         <button class="user-menu-item" onclick="openSSHKeyModal()">
           <svg class="octicon" width="16" height="16"><use href="#octicon-key"/></svg>
-          SSH Key
+          SSH Public Key
         </button>
         <button class="user-menu-item" onclick="openTokensModal()">
           <svg class="octicon" width="16" height="16"><use href="#octicon-lock"/></svg>
@@ -154,10 +179,10 @@ tr:hover td{background:var(--bgColor-attentive)}
           Help/Docs
         </a>
         <hr class="user-menu-sep">
-        <button class="user-menu-item" onclick="cycleTheme()" id="themeMenuItem">
-          <svg class="octicon" width="16" height="16" id="themeMenuIcon"><use href="#octicon-moon"/></svg>
-          <span id="themeMenuLabel">Switch to Dark</span>
-        </button>
+        <a class="user-menu-item" id="logoutLink" href="#">
+          <svg class="octicon" width="16" height="16"><use href="#octicon-sign-out"/></svg>
+          Log out
+        </a>
       </div>
     </div>
   </div>
@@ -166,6 +191,7 @@ tr:hover td{background:var(--bgColor-attentive)}
 <main>
   <div class="tabs" role="tablist">
     <button class="tab active" id="tab-deployments" role="tab" aria-selected="true" onclick="switchTab('deployments')">
+      <svg class="octicon" width="16" height="16"><use href="#octicon-cloud"/></svg>
       Deployments <span class="tab-count" id="deployCount">–</span>
     </button>
     <button class="tab" id="tab-jobs" role="tab" aria-selected="false" onclick="switchTab('jobs')">
@@ -291,29 +317,80 @@ tr:hover td{background:var(--bgColor-attentive)}
 
 
 <script>
-const THEME_KEY = 'deploy-dashboard-theme';
+/* ---------- user settings: theme + view-mode (persisted in the user-settings Secret) ---------- */
+let viewMode = 'basic'; // 'basic' (default) or 'advanced'
 
+// Applies the theme to the DOM and updates the menu label/icon. Persistence is
+// done by the caller (saveUserSetting) so we don't fire an API call on startup.
 function setTheme(theme) {
   const isLight = theme === 'latte';
   document.documentElement.setAttribute('data-color-mode', isLight ? 'light' : 'dark');
   document.documentElement.setAttribute('data-light-theme', 'light');
   document.documentElement.setAttribute('data-dark-theme', 'dark');
-  localStorage.setItem(THEME_KEY, theme);
   const label = document.getElementById('themeMenuLabel');
   const icon = document.getElementById('themeMenuIcon');
   if (label) label.textContent = isLight ? 'Switch to Dark' : 'Switch to Light';
   if (icon) icon.innerHTML = `<use href="#octicon-${isLight ? 'moon' : 'sun'}"/>`;
 }
 
-function cycleTheme() {
-  const current = localStorage.getItem(THEME_KEY) || 'latte';
-  const next = current === 'latte' ? 'frappe' : 'latte';
-  setTheme(next);
+// Applies the view mode: Basic shows only the Deployments tab; Advanced also
+// shows Jobs and Cluster nodes. In Basic we force the active tab back to
+// Deployments (you can't be viewing a hidden tab).
+function setViewMode(mode) {
+  viewMode = (mode === 'advanced') ? 'advanced' : 'basic';
+  const advanced = viewMode === 'advanced';
+  const tabs = { jobs: 'tab-jobs', nodes: 'tab-nodes' };
+  const panels = { jobs: 'panel-jobs', nodes: 'panel-nodes' };
+  for (const key of Object.keys(tabs)) {
+    const el = document.getElementById(tabs[key]);
+    const pan = document.getElementById(panels[key]);
+    if (el) el.style.display = advanced ? '' : 'none';
+    if (pan) pan.classList.toggle('active', advanced ? pan.classList.contains('active') : false);
+  }
+  if (!advanced) switchTab('deployments'); // can't sit on a hidden tab
+  // Update the menu label + icon.
+  const label = document.getElementById('viewModeMenuLabel');
+  const icon = document.getElementById('viewModeMenuIcon');
+  if (label) label.textContent = advanced ? 'Switch to Basic view' : 'Switch to Advanced view';
+  if (icon) icon.innerHTML = `<use href="#octicon-${advanced ? 'crosshairs' : 'cloud'}"/>`;
+  // When switching to Advanced, populate the newly-visible tabs right away.
+  if (advanced) { fetchJobs(); fetchNodes(); }
+  // Re-render the deployments table so the Advanced-only "Delete deployment"
+  // action appears/disappears immediately (uses the already-loaded data).
+  renderDeployments();
+}
+
+function cycleViewMode() {
+  setViewMode(viewMode === 'basic' ? 'advanced' : 'basic');
+  saveUserSetting('view-mode', viewMode);
   document.getElementById('userMenu').classList.remove('open');
 }
 
-setTheme(localStorage.getItem(THEME_KEY) || 'latte');
+function cycleTheme() {
+  const next = document.documentElement.getAttribute('data-color-mode') === 'light' ? 'frappe' : 'latte';
+  setTheme(next);
+  saveUserSetting('theme', next);
+  document.getElementById('userMenu').classList.remove('open');
+}
 
+// Persists a single setting (key -> value) into the user-settings Secret.
+function saveUserSetting(key, value) {
+  return api('api/user-settings', { method: 'PUT', body: JSON.stringify({ [key]: value }) })
+    .catch(err => console.warn(`could not save ${key}:`, err));
+}
+
+// Loads the persisted theme + view-mode on startup. Defaults: dark + basic.
+async function loadUserSettings() {
+  let data = {};
+  try { data = await api('api/user-settings'); } catch { data = {}; }
+  setTheme(data['theme'] || 'frappe');
+  setViewMode(data['view-mode'] || 'basic');
+}
+
+// Apply a safe default immediately (dark, basic) so there's no flash, then load
+// the persisted values. NOTE: these calls run AFTER all top-level `let`
+// declarations below (deployments, etc.) have been reached, to avoid a TDZ
+// error when setViewMode -> renderDeployments reads `deployments`.
 async function api(path, opts = {}) {
   const res = await fetch(path, { headers: { 'Content-Type': 'application/json' }, ...opts });
   if (!res.ok) { const err = await res.text(); throw new Error(err || `HTTP ${res.status}`); }
@@ -339,6 +416,7 @@ function renderDeployments() {
     <tr data-name="${d.name}">
       <td class="name-cell">
         <div class="name-cell-inner">
+          ${d.workloadIcon ? `<svg class="octicon workload-icon" width="16" height="16" aria-hidden="true"><use href="#octicon-${d.workloadIcon}"/></svg>` : ''}
           <span>${d.name}</span>
           ${d.workloadUrl ? `<a class="workload-link" href="${d.workloadUrl}" target="_blank" rel="noopener noreferrer" title="Open ${d.workloadUrl}">
             <svg class="octicon" width="12" height="12"><use href="#octicon-link-external"/></svg>
@@ -348,11 +426,11 @@ function renderDeployments() {
       <td>
         ${d.running
           ? `<span class="status-badge success">
-              <svg class="octicon" width="12" height="12"><use href="#octicon-check-circle"/></svg>
+              <svg class="octicon" width="12" height="12"><use href="#octicon-cloud"/></svg>
               ${d.ready} containers running
             </span>`
           : `<span class="status-badge stopped">
-              <svg class="octicon" width="12" height="12"><use href="#octicon-stop"/></svg>
+              <svg class="octicon" width="12" height="12"><use href="#octicon-cloud-offline"/></svg>
               0 containers running
             </span>`
         }
@@ -360,15 +438,16 @@ function renderDeployments() {
       <td>
         <div class="actions-cell">
           <div class="toggle ${d.running ? 'on' : ''}" onclick="toggleDeployment('${d.name}', ${!d.running})" title="${d.running ? 'Stop' : 'Start'}"></div>
-          <button class="btn-icon" onclick="showLogs('${d.name}')" title="View logs">
-            <svg class="octicon" width="16" height="16"><use href="#octicon-pulse"/></svg>
+          <button class="btn-icon logs" onclick="showLogs('${d.name}')" title="View logs">
+            <svg class="octicon" width="16" height="16"><use href="#octicon-log"/></svg>
           </button>
           <button class="btn-icon warning" onclick="killPods('${d.name}')" title="Terminate pods">
-            <svg class="octicon" width="16" height="16"><use href="#octicon-stop"/></svg>
+            <svg class="octicon" width="16" height="16"><use href="#octicon-issue-reopened"/></svg>
           </button>
+          ${viewMode === 'advanced' ? `
           <button class="btn-icon danger" onclick="deleteDeployment('${d.name}')" title="Delete deployment">
-            <svg class="octicon" width="16" height="16"><use href="#octicon-trash"/></svg>
-          </button>
+            <svg class="octicon" width="16" height="16"><use href="#octicon-crosshairs"/></svg>
+          </button>` : ''}
         </div>
       </td>
     </tr>
@@ -514,10 +593,10 @@ let jobs = [];
 // Map a job status string to the requested colors:
 //   succeeded -> green, pending -> yellow, running -> blue, failed -> red.
 const jobStatusMeta = {
-  succeeded: { cls: 'success', label: 'Succeeded',   dot: 'var(--fgColor-success)',   icon: '#octicon-check-circle' },
-  pending:   { cls: 'pending', label: 'Pending',     dot: 'var(--fgColor-attention)', icon: '#octicon-info' },
-  running:   { cls: 'running', label: 'Running',     dot: 'var(--fgColor-accent)',    icon: '#octicon-pulse' },
-  failed:    { cls: 'failed',  label: 'Failed',      dot: 'var(--fgColor-danger)',    icon: '#octicon-alert' },
+  succeeded: { cls: 'success', label: 'Succeeded',   dot: 'var(--status-good)',     icon: '#octicon-cloud' },
+  pending:   { cls: 'pending', label: 'Pending',     dot: 'var(--status-starting)', icon: '#octicon-webhook' },
+  running:   { cls: 'running', label: 'Running',     dot: 'var(--status-starting)', icon: '#octicon-webhook' },
+  failed:    { cls: 'failed',  label: 'Failed',      dot: 'var(--status-bad)',      icon: '#octicon-cloud-offline' },
 };
 
 function renderJobs() {
@@ -554,8 +633,8 @@ function renderJobs() {
         </td>
         <td>
           <div class="actions-cell">
-            <button class="btn-icon" onclick="showJobLogs('${j.name}')" title="View job output">
-              <svg class="octicon" width="16" height="16"><use href="#octicon-pulse"/></svg>
+            <button class="btn-icon logs" onclick="showJobLogs('${j.name}')" title="View job output">
+              <svg class="octicon" width="16" height="16"><use href="#octicon-log"/></svg>
             </button>
           </div>
         </td>
@@ -629,10 +708,10 @@ function renderNodes() {
   }
   tbody.innerHTML = nodes.map(n => {
     const roles = (n.roles || 'worker').split(',').join(' ');
-    // Ready state -> dot color: green Ready, yellow NotReady, red Unknown.
-    const readyDot = n.status === 'Ready' ? 'var(--fgColor-success)'
-      : n.status === 'NotReady' ? 'var(--fgColor-attention)'
-      : 'var(--fgColor-danger)';
+    // Ready state -> dot color: good Ready, warning NotReady, bad Unknown.
+    const readyDot = n.status === 'Ready' ? 'var(--status-good)'
+      : n.status === 'NotReady' ? 'var(--status-starting)'
+      : 'var(--status-bad)';
     const hasCpu = n.cpuTotalM > 0 && n.cpuUsedM >= 0;
     const hasMem = n.memTotalB > 0 && n.memUsedB >= 0;
     return `
@@ -716,10 +795,32 @@ async function saveTokens() {
   } catch (err) { alert('Failed to save: ' + err.message); }
 }
 
-fetchDeployments();
-fetchJobs();
-fetchNodes();
-setInterval(() => { fetchDeployments(); fetchJobs(); fetchNodes(); }, 10000);
+// Apply the safe default (dark, basic) now that all top-level `let` declarations
+// above have been initialized, then load the persisted theme + view-mode.
+setTheme('frappe');
+setViewMode('basic');
+loadUserSettings();
+
+// Refresh all visible data. Jobs + Nodes are only fetched in Advanced mode (in
+// Basic mode their tabs are hidden, so we skip those API calls).
+function refreshAll() {
+  fetchDeployments();
+  if (viewMode === 'advanced') { fetchJobs(); fetchNodes(); }
+}
+
+refreshAll();
+setInterval(refreshAll, 10000);
+
+// Logout link: point to <app-base-path>/logout (e.g. /u/user1/logout).
+// The base is the document's directory (path up to and including the last '/'),
+// so it works whether the app is served at /, /apps/, or /u/<user>/.
+(function initLogoutLink() {
+  const el = document.getElementById('logoutLink');
+  if (!el) return;
+  const path = location.pathname;
+  const base = path.slice(0, path.lastIndexOf('/') + 1); // keep trailing slash
+  el.href = base + 'logout';
+})();
 </script>
 </body>
 </html>
