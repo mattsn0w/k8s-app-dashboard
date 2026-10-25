@@ -294,36 +294,51 @@ type nodeMetricsList struct {
 //   - begins with "http://", "https://", or "/" (absolute subpath)
 //   - contains only a relative or absolute subpath (no query params, no fragments
 //     that would break the path, no unexpected characters)
+// isValidWorkloadURL checks that a workload-url annotation value is a safe,
+// same-origin relative path. Only two forms are accepted:
+//   - an absolute path starting with a single "/" (e.g. /apps/echo, /vscode/)
+//   - a relative subpath that ends with "/" and has no leading "/" or "//"
+//     (e.g. vscode/, apps/terminal/) — used for subpath-aware SPAs.
+//
+// It deliberately REJECTS:
+//   - http(s):// and any other absolute URL  (open-redirect / external-site link)
+//   - protocol-relative "//host" URLs
+//   - non-HTTP schemes (javascript:, data:, mailto:, file:, ...)
+//   - bare domains, empty strings, whitespace, and control characters
+//
+// This pins the workload-url to the dashboard's own origin so the rendered
+// <a href> can never point the browser at an external site or a script handler
+// (SEC-06). rel="noopener noreferrer" on the link is defense-in-depth.
 func isValidWorkloadURL(s string) bool {
 	if s == "" {
 		return false
 	}
-	isHTTP := strings.HasPrefix(s, "http://") || strings.HasPrefix(s, "https://")
+	// Reject anything with a scheme or a protocol-relative prefix. The only
+	// accepted forms start with a single "/" (absolute path) or a plain word
+	// (relative subpath). A value containing "://" or starting with "//" is an
+	// external/protocol-relative URL and is not same-origin.
+	if strings.Contains(s, "://") || strings.HasPrefix(s, "//") {
+		return false
+	}
+	// Reject non-path schemes (javascript:, data:, mailto:, file:, etc.). Any
+	// "word:" prefix that isn't a path is a scheme and is not allowed.
+	if i := strings.IndexByte(s, ':'); i >= 0 && !strings.HasPrefix(s, "/") {
+		return false
+	}
 	isAbsPath := strings.HasPrefix(s, "/")
-	isRelPath := !isHTTP && !isAbsPath && strings.HasSuffix(s, "/") && len(s) > 1 && !strings.Contains(s, "//")
-	// Accepted forms:
-	//   - http(s)://host/path
-	//   - absolute path  (/apps/echo, /vscode)
-	//   - relative subpath ending in "/"  (vscode/ , /apps/terminal/)
-	// A bare relative subpath must not contain "//" and must be more than "/".
-	if !isHTTP && !isAbsPath && !isRelPath {
+	isRelPath := !isAbsPath && strings.HasSuffix(s, "/") && len(s) > 1
+	if !isAbsPath && !isRelPath {
 		return false
 	}
-	// For absolute paths, must have more than just "/"
-	if isAbsPath && (s == "/" || len(s) == 1) {
+	// Absolute paths must have more than just "/".
+	if isAbsPath && s == "/" {
 		return false
 	}
-	// For http(s) URLs, must have a non-empty path after the scheme
-	if isHTTP {
-		if i := strings.Index(s, "/"); i >= 0 {
-			if s[i:] == "/" {
-				return false
-			}
-		} else {
-			return false
-		}
+	// Relative subpaths must not contain "//".
+	if isRelPath && strings.Contains(s, "//") {
+		return false
 	}
-	// Reject values with spaces, control chars, or obviously invalid content
+	// Reject values with whitespace or control characters.
 	for _, c := range s {
 		if c == ' ' || c == '\t' || c == '\n' || c == '\r' || c < 0x20 {
 			return false

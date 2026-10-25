@@ -30,13 +30,25 @@ func TestIsValidWorkloadURL(t *testing.T) {
 		{name: "path with trailing slash", url: "/apps/echo/", want: true},
 		{name: "path with special chars", url: "/apps/echo?x=1&y=2", want: true},
 
-		// Valid absolute URLs
-		{name: "http URL", url: "http://example.com", want: true},
-		{name: "https URL", url: "https://example.com", want: true},
-		{name: "http URL with path", url: "http://example.com/api", want: true},
-		{name: "https URL with port", url: "https://example.com:8080/api", want: true},
-		{name: "http URL with query", url: "http://example.com/api?x=1", want: true},
-		{name: "https URL with subdomain", url: "https://sub.example.com/api", want: true},
+		// Absolute http(s) URLs are REJECTED: workload-url must be same-origin
+		// only (open-redirect fix, SEC-06). An attacker with annotation write
+		// access must not be able to point the link at an external site.
+		{name: "http URL rejected", url: "http://example.com", want: false},
+		{name: "https URL rejected", url: "https://example.com", want: false},
+		{name: "http URL with path rejected", url: "http://example.com/api", want: false},
+		{name: "https URL with port rejected", url: "https://example.com:8080/api", want: false},
+		{name: "http URL with query rejected", url: "http://example.com/api?x=1", want: false},
+		{name: "https URL with subdomain rejected", url: "https://sub.example.com/api", want: false},
+		{name: "http URL with credentials rejected", url: "http://user:pass@example.com", want: false},
+		{name: "https URL with IP rejected", url: "https://192.168.1.1:8080/api", want: false},
+		{name: "http URL with IP rejected", url: "http://10.0.0.1", want: false},
+
+		// Protocol-relative URLs are REJECTED (would resolve against an external
+		// host when the page is on a different origin).
+		{name: "protocol-relative //host rejected", url: "//evil.example", want: false},
+		{name: "protocol-relative //host/path rejected", url: "//evil.example/phish", want: false},
+		{name: "just double slash rejected", url: "//", want: false},
+		{name: "triple slash rejected", url: "///", want: false},
 
 		// Invalid: empty
 		{name: "empty string", url: "", want: false},
@@ -78,13 +90,9 @@ func TestIsValidWorkloadURL(t *testing.T) {
 		{name: "path with tab", url: "/apps/echo\t", want: false},
 
 		// Edge cases
-		{name: "just double slash", url: "//", want: true},
-		{name: "triple slash", url: "///", want: true},
-		{name: "path with @", url: "/user@host/path", want: true},
-		{name: "path with %", url: "/path%20with%20spaces", want: true},
-		{name: "http with @", url: "http://user:pass@example.com", want: true},
-		{name: "https with IP", url: "https://192.168.1.1:8080/api", want: true},
-		{name: "http with IP", url: "http://10.0.0.1", want: true},
+		{name: "path with @ (same-origin, allowed)", url: "/user@host/path", want: true},
+		{name: "path with % (same-origin, allowed)", url: "/path%20with%20spaces", want: true},
+		{name: "relative subpath with @ (same-origin, allowed)", url: "user@host/", want: true},
 	}
 
 	for _, tt := range tests {

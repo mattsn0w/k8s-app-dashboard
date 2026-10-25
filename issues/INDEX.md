@@ -31,7 +31,7 @@ Each issue is a single markdown file in this directory, capturing **type**, **su
 | SEC-03 | Dashboard RBAC grants full ConfigMap CRUD (create) | Medium | Low | ✅ FIXED (name-scoped Secret grant) |
 | SEC-04 | Log endpoint exposes any pod, no filtering | High | Medium | ⛔ WONT FIX (auth at gateway; residual is scoping) |
 | SEC-05 | Raw K8s API error text returned to the client | Low | Low | ⛔ WONT FIX (auth at gateway; bounded to vetted callers) |
-| SEC-06 | workload-url allows open-redirect / javascript: | Low | Low |
+| SEC-06 | workload-url allows open-redirect / javascript: | Low | Low | ✅ FIXED (same-origin-only validation + render sanitizer) |
 | SEC-07 | No CORS restriction (latent) | Low | Low | ✅ FIXED (`sameOriginOnly` middleware + test) |
 | SEC-08 | WebSocket 1 MiB frame cap / no rate limit | Low | Medium |
 | SEC-09 | Enforce OIDC auth via an Envoy Gateway SecurityPolicy | Critical | Low | 🔧 IMPLEMENTED (dry-run; not applied live) — the fix for SEC-01 |

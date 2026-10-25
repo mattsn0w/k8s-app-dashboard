@@ -97,6 +97,24 @@ function barWidth(used, total) {
   return Math.min(1, Math.max(0, used / total)) * 100;
 }
 
+// ---------- Workload URL sanitization (SEC-06) ----------
+
+// Mirrors the SPA's safeWorkloadURL: only same-origin relative paths are
+// returned; anything that could be an external/protocol-relative/scheme URL
+// returns "" (link hidden).
+function safeWorkloadURL(u) {
+  if (typeof u !== 'string' || u === '') return '';
+  if (u.includes('://') || u.startsWith('//')) return '';
+  const hasScheme = (u.match(/^[a-zA-Z][a-zA-Z0-9+.-]*:/) || [null])[0];
+  if (hasScheme && !u.startsWith('/')) return '';
+  const isAbsPath = u.startsWith('/');
+  const isRelSubpath = !isAbsPath && u.endsWith('/') && u.length > 1 && !u.includes('//');
+  if (!isAbsPath && !isRelSubpath) return '';
+  if (isAbsPath && u === '/') return '';
+  if (/[\s\u0000-\u001f]/.test(u)) return '';
+  return u;
+}
+
 // ---------- Tests ----------
 
 let passed = 0;
@@ -225,6 +243,28 @@ assertEq(jobStatusClass('pending'), 'pending', 'pending -> yellow/pending');
 assertEq(jobStatusClass('running'), 'running', 'running -> blue/running');
 assertEq(jobStatusClass('failed'), 'failed', 'failed -> red/failed');
 assertEq(jobStatusClass('weird'), 'pending', 'unknown -> default pending');
+
+// --- Workload URL sanitization tests ---
+console.log('safeWorkloadURL:');
+assertEq(safeWorkloadURL('/apps/echo'), '/apps/echo', 'absolute same-origin path -> kept');
+assertEq(safeWorkloadURL('/apps/vscode/'), '/apps/vscode/', 'absolute path trailing slash -> kept');
+assertEq(safeWorkloadURL('apps/vscode/'), 'apps/vscode/', 'relative subpath -> kept');
+assertEq(safeWorkloadURL('terminal/'), 'terminal/', 'relative subpath single word -> kept');
+assertEq(safeWorkloadURL('/a/b/c?x=1'), '/a/b/c?x=1', 'path with query -> kept');
+assertEq(safeWorkloadURL('http://evil.example'), '', 'http URL -> hidden');
+assertEq(safeWorkloadURL('https://evil.example/phish'), '', 'https URL -> hidden');
+assertEq(safeWorkloadURL('//evil.example'), '', 'protocol-relative -> hidden');
+assertEq(safeWorkloadURL('//'), '', 'bare // -> hidden');
+assertEq(safeWorkloadURL('javascript:alert(1)'), '', 'javascript: -> hidden');
+assertEq(safeWorkloadURL('data:text/html,<script>'), '', 'data: -> hidden');
+assertEq(safeWorkloadURL('mailto:x@y.com'), '', 'mailto: -> hidden');
+assertEq(safeWorkloadURL('file:///etc/passwd'), '', 'file: -> hidden');
+assertEq(safeWorkloadURL('/'), '', 'bare root -> hidden');
+assertEq(safeWorkloadURL(''), '', 'empty -> hidden');
+assertEq(safeWorkloadURL('   '), '', 'whitespace -> hidden');
+assertEq(safeWorkloadURL('/apps /x'), '', 'internal space -> hidden');
+assertEq(safeWorkloadURL(null), '', 'null -> hidden');
+assertEq(safeWorkloadURL(42), '', 'non-string -> hidden');
 
 // --- Summary ---
 console.log(`\n${passed} passed, ${failed} failed`);

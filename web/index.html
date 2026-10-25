@@ -397,6 +397,29 @@ async function api(path, opts = {}) {
   return res.json();
 }
 
+// safeWorkloadURL is a render-time guard (SEC-06) that only returns a
+// same-origin relative path. The backend already validates workload-url, but
+// this is defense-in-depth: if a value ever slips through (or validation is
+// loosened), we never render an href that could be an external URL, a
+// protocol-relative link, or a javascript:/data: handler. Returns "" to hide
+// the link when the value is unsafe.
+function safeWorkloadURL(u) {
+  if (typeof u !== 'string' || u === '') return '';
+  // Reject any scheme (contains "://"), protocol-relative prefix ("//"), or a
+  // non-path "word:" scheme (javascript:, data:, mailto:, file:, ...).
+  if (u.includes('://') || u.startsWith('//')) return '';
+  const hasScheme = (u.match(/^[a-zA-Z][a-zA-Z0-9+.-]*:/) || [null])[0];
+  if (hasScheme && !u.startsWith('/')) return '';
+  // Accept only absolute same-origin paths (/...) or relative subpaths that
+  // end in "/" (subpath-aware SPAs). Reject empty/bare and whitespace.
+  const isAbsPath = u.startsWith('/');
+  const isRelSubpath = !isAbsPath && u.endsWith('/') && u.length > 1 && !u.includes('//');
+  if (!isAbsPath && !isRelSubpath) return '';
+  if (isAbsPath && u === '/') return '';
+  if (/[\s\u0000-\u001f]/.test(u)) return '';
+  return u;
+}
+
 let deployments = [];
 let logAbortController = null;
 let logWS = null;
@@ -418,7 +441,7 @@ function renderDeployments() {
         <div class="name-cell-inner">
           ${d.workloadIcon ? `<svg class="octicon workload-icon" width="16" height="16" aria-hidden="true"><use href="#octicon-${d.workloadIcon}"/></svg>` : ''}
           <span>${d.name}</span>
-          ${d.workloadUrl ? `<a class="workload-link" href="${d.workloadUrl}" target="_blank" rel="noopener noreferrer" title="Open ${d.workloadUrl}">
+          ${safeWorkloadURL(d.workloadUrl) ? `<a class="workload-link" href="${safeWorkloadURL(d.workloadUrl)}" target="_blank" rel="noopener noreferrer" title="Open ${safeWorkloadURL(d.workloadUrl)}">
             <svg class="octicon" width="12" height="12"><use href="#octicon-link-external"/></svg>
           </a>` : ''}
         </div>
