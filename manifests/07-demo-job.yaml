@@ -1,0 +1,25 @@
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: manually-created-test-job
+  namespace: apps
+spec:
+  ttlSecondsAfterFinished: 300
+  template:
+    metadata: {}
+    spec:
+      restartPolicy: Never
+      containers:
+      - name: manually-created-test-job
+        image: ubuntu:24.04
+        resources: {}
+        command: [ '/bin/bash', '-c' ]
+        args:
+          - |
+              for ((ctx=0;ctx<100;ctx++)); do
+                  echo $ctx; 
+                  date ; 
+                  sleep 15 ; 
+              done
+
