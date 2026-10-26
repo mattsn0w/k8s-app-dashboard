@@ -1,4 +1,14 @@
-# ServiceAccount for the deploy-dashboard app
+# RBAC for the deploy-dashboard app.
+#
+# Scope model (see docs/kubernetes-security-model.md):
+#   - CLUSTER-scoped resources  -> read-only, in a ClusterRole (they are
+#     cluster-wide by nature; the app only reads node/metrics data).
+#   - NAMESPACED resources      -> feature-scoped verbs, in a namespace Role
+#     bound only to `apps`. A Role's rules apply ONLY in its own namespace, so
+#     the app can never touch another namespace's workloads. (A ClusterRole
+#     would leak the same verbs to every namespace — do not use one for these.)
+#
+# The single ServiceAccount `deploy-dashboard` (ns `apps`) is the only subject.
 apiVersion: v1
 kind: ServiceAccount
 metadata:
@@ -7,72 +17,82 @@ metadata:
   labels:
     app.kubernetes.io/name: deploy-dashboard
 ---
-# ClusterRole: read pods/nodes/services/deployments/replicasets + logs,
-# edit deployments, create/delete deployments
+# ClusterRole: ONLY genuinely cluster-scoped resources, read-only.
+# `nodes` (v1) for the Nodes tab names/roles/Ready; `nodes`
+# (metrics.k8s.io) for the per-node CPU/RAM bars (degrades to "—" if the
+# metrics server is absent). No write verbs — the app must never mutate
+# cluster state.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRole
 metadata:
-  name: deploy-dashboard
+  name: deploy-dashboard-cluster
   labels:
     app.kubernetes.io/name: deploy-dashboard
 rules:
 - apiGroups: [""]
-  resources: ["pods", "nodes", "services"]
+  resources: ["nodes"]
   verbs: ["get", "list", "watch"]
-# Pods: the "Terminate pods" action deletes individual pods (e.g. to restart
-# a crashed container) without deleting the whole Deployment, so the
-# ServiceAccount needs delete on pods in addition to read.
-- apiGroups: [""]
-  resources: ["pods"]
-  verbs: ["delete"]
-- apiGroups: [""]
-  resources: ["pods/log"]
-  verbs: ["get"]
-- apiGroups: ["apps"]
-  resources: ["deployments", "replicasets"]
-  verbs: ["get", "list", "watch", "update", "patch"]
-- apiGroups: ["apps"]
-  resources: ["deployments"]
-  verbs: ["create", "delete"]
-# Kubernetes Jobs for the Jobs tab (list + read; job pods are covered by the pods rule).
-- apiGroups: ["batch"]
-  resources: ["jobs"]
-  verbs: ["get", "list", "watch"]
-# Per-node CPU/memory usage for the Nodes tab. Only exposed if the metrics
-# server (metrics.k8s.io) is installed; the app degrades to "—" otherwise.
 - apiGroups: ["metrics.k8s.io"]
   resources: ["nodes"]
   verbs: ["get", "list"]
 ---
-# Bind the ClusterRole to the ServiceAccount in the apps namespace
 apiVersion: rbac.authorization.k8s.io/v1
 kind: ClusterRoleBinding
 metadata:
-  name: deploy-dashboard
+  name: deploy-dashboard-cluster
   labels:
     app.kubernetes.io/name: deploy-dashboard
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: ClusterRole
-  name: deploy-dashboard
+  name: deploy-dashboard-cluster
 subjects:
 - kind: ServiceAccount
   name: deploy-dashboard
   namespace: apps
 ---
-# Namespace-scoped access to the SINGLE user-settings Secret (SSH key +
-# tokens). The app only reads and writes this one named Secret, so grant just
-# get + update + patch on that name -- no list over all secrets, no create.
-# (SEC-02/SEC-03: credentials moved from a broad ConfigMap grant to a
-# least-privilege, name-scoped Secret grant.)
+# Role: ALL namespace-scoped resources, confined to `apps`. This is where the
+# feature verbs live. Because it is a Role (not a ClusterRole), every rule
+# below applies ONLY in the `apps` namespace.
 apiVersion: rbac.authorization.k8s.io/v1
 kind: Role
 metadata:
-  name: deploy-dashboard-user-settings
+  name: deploy-dashboard
   namespace: apps
   labels:
     app.kubernetes.io/name: deploy-dashboard
 rules:
+# List/read pods + their logs. `delete` powers "Terminate pods" (force-restart
+# a pod without deleting the Deployment).
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch", "delete"]
+- apiGroups: [""]
+  resources: ["pods/log"]
+  verbs: ["get"]
+# Services: read-only metadata. No feature writes Services.
+- apiGroups: [""]
+  resources: ["services"]
+  verbs: ["get", "list", "watch"]
+# Deployments: the core CRUD surface. patch = scale (to 0 and back up, saving
+# the prior count in an annotation), delete = delete deployment, create = headroom.
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+# ReplicaSets: read + scale. update/patch are granted so the scale-down-to-zero
+# / scale-back-up capability is never blocked by which object the scale path
+# touches (scaling is normally done on the Deployment, which cascades to the
+# ReplicaSet; the extra write keeps that capability robust).
+- apiGroups: ["apps"]
+  resources: ["replicasets"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+# Jobs: list + view output. Read-only.
+- apiGroups: ["batch"]
+  resources: ["jobs"]
+  verbs: ["get", "list", "watch"]
+# User settings (SSH key + access tokens): the SINGLE `user-settings` Secret,
+# name-scoped via resourceNames. No list over all Secrets, no create.
+# (SEC-02/SEC-03: credentials live in a Secret, least-privilege grant.)
 - apiGroups: [""]
   resources: ["secrets"]
   resourceNames: ["user-settings"]
@@ -81,14 +101,14 @@ rules:
 apiVersion: rbac.authorization.k8s.io/v1
 kind: RoleBinding
 metadata:
-  name: deploy-dashboard-user-settings
+  name: deploy-dashboard
   namespace: apps
   labels:
     app.kubernetes.io/name: deploy-dashboard
 roleRef:
   apiGroup: rbac.authorization.k8s.io
   kind: Role
-  name: deploy-dashboard-user-settings
+  name: deploy-dashboard
 subjects:
 - kind: ServiceAccount
   name: deploy-dashboard

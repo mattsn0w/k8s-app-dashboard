@@ -1,0 +1,62 @@
+# RBAC security test fixture (SEC-10).
+#
+# Creates a dedicated namespace + a ServiceAccount bound to a namespace-scoped
+# Role, mirroring how the real `deploy-dashboard` SA is granted namespaced
+# access. The Role grants the same namespaced verbs the app needs. There is NO
+# ClusterRole here, so the SA has no cluster-scoped grants of its own — the test
+# then asserts the SA is denied on cluster-scoped resources.
+#
+# Apply with:  kubectl apply -f fixture.yaml
+# Delete with: kubectl delete namespace rbac-sec-test
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: rbac-sec-test
+  labels:
+    rbac-test: "true"
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: sec-test-sa
+  namespace: rbac-sec-test
+---
+# Namespaced grants only (the pattern the app must follow).
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: sec-test-role
+  namespace: rbac-sec-test
+rules:
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch", "delete"]
+- apiGroups: [""]
+  resources: ["pods/log"]
+  verbs: ["get"]
+- apiGroups: [""]
+  resources: ["services"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments"]
+  verbs: ["get", "list", "watch", "create", "update", "patch", "delete"]
+- apiGroups: ["apps"]
+  resources: ["replicasets"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+- apiGroups: ["batch"]
+  resources: ["jobs"]
+  verbs: ["get", "list", "watch"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: sec-test-role
+  namespace: rbac-sec-test
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: Role
+  name: sec-test-role
+subjects:
+- kind: ServiceAccount
+  name: sec-test-sa
+  namespace: rbac-sec-test

@@ -35,6 +35,7 @@ Each issue is a single markdown file in this directory, capturing **type**, **su
 | SEC-07 | No CORS restriction (latent) | Low | Low | ✅ FIXED (`sameOriginOnly` middleware + test) |
 | SEC-08 | WebSocket 1 MiB frame cap / no rate limit | Low | Medium |
 | SEC-09 | Enforce OIDC auth via an Envoy Gateway SecurityPolicy | Critical | Low | 🔧 IMPLEMENTED (dry-run; not applied live) — the fix for SEC-01 |
+| SEC-10 | ClusterRole leaked namespaced grants to every namespace | High | Low | ✅ FIXED (split into read-only ClusterRole + namespaced Role; test in `tests/k8s-role-sec/`) |
 
 ### Anti-patterns (APP)
 | ID | Title | Severity | Effort |
