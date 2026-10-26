@@ -39,3 +39,13 @@ Pinned the same-origin policy centrally so it can't regress:
 
 Verified: cross-origin request to `/api/deployments` returns `200` with no CORS
 headers; the SPA and API still work normally.
+
+### Regression fix (WebSocket hijacking)
+The initial `stripCORSWriter` only embedded the `http.ResponseWriter` interface,
+which does **not** expose `Hijack()`. The WebSocket log stream (`handleLogsWS`)
+does `w.(http.Hijacker)`, so that assertion failed and every WS upgrade returned
+500 "hijacking not supported", breaking the log view. Fixed by adding a
+`Hijack()` method to `stripCORSWriter` that strips headers then delegates to the
+underlying writer's `Hijack()`. Added two regression tests:
+`TestStripCORSWriter_Hijackable` (type assertion) and
+`TestSameOriginOnly_WSHandshake` (end-to-end 101 upgrade through the middleware).

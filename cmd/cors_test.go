@@ -1,6 +1,8 @@
 package main
 
 import (
+	"crypto/sha1"
+	"encoding/base64"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -97,4 +99,64 @@ func trimSpaceEQ(s, target string) bool {
 		}
 	}
 	return true
+}
+
+// TestStripCORSWriter_Hijackable asserts the CORS wrapper still satisfies
+// http.Hijacker so the WebSocket log stream (handleLogsWS) can Hijack() through
+// it. Regression test: SEC-07's middleware must not break WS upgrades.
+func TestStripCORSWriter_Hijackable(t *testing.T) {
+	// Use a real ResponseWriter that supports Hijack (httptest's recorder does
+	// NOT, so use a hijacker-backed server via a real listener).
+	// Simpler: assert the concrete type implements http.Hijacker.
+	var _ http.Hijacker = &stripCORSWriter{ResponseWriter: httptest.NewRecorder()}
+}
+
+// TestSameOriginOnly_WSHandshake is an end-to-end regression test: a WebSocket
+// upgrade must succeed through the sameOriginOnly middleware. Before the fix,
+// stripCORSWriter did not expose Hijack(), so handleLogsWS returned 500
+// "hijacking not supported" and the log view broke.
+func TestSameOriginOnly_WSHandshake(t *testing.T) {
+	// A minimal handler that performs the WS 101 handshake.
+	wsHandler := http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		hj, ok := w.(http.Hijacker)
+		if !ok {
+			http.Error(w, "hijacking not supported", http.StatusInternalServerError)
+			return
+		}
+		conn, buf, err := hj.Hijack()
+		if err != nil {
+			http.Error(w, err.Error(), http.StatusInternalServerError)
+			return
+		}
+		defer conn.Close()
+		key := r.Header.Get("Sec-WebSocket-Key")
+		h := sha1.New()
+		h.Write([]byte(key + wsGUID))
+		accept := base64.StdEncoding.EncodeToString(h.Sum(nil))
+		resp := "HTTP/1.1 101 Switching Protocols\r\n" +
+			"Upgrade: websocket\r\n" +
+			"Connection: Upgrade\r\n" +
+			"Sec-WebSocket-Accept: " + accept + "\r\n\r\n"
+		buf.WriteString(resp)
+		buf.Flush()
+	})
+
+	srv := httptest.NewServer(sameOriginOnly(wsHandler))
+	defer srv.Close()
+
+	client := srv.Client()
+	req, _ := http.NewRequest("GET", srv.URL+"/api/logs-ws", nil)
+	req.Header.Set("Upgrade", "websocket")
+	req.Header.Set("Connection", "Upgrade")
+	req.Header.Set("Sec-WebSocket-Key", "dGhlIHNhbXBsZSBub25jZQ==")
+	req.Header.Set("Sec-WebSocket-Version", "13")
+
+	res, err := client.Do(req)
+	if err != nil {
+		t.Fatalf("request failed: %v", err)
+	}
+	defer res.Body.Close()
+	if res.StatusCode != http.StatusSwitchingProtocols {
+		t.Fatalf("status = %d, want 101 Switching Protocols (WS upgrade must work through CORS middleware)", res.StatusCode)
+	}
 }

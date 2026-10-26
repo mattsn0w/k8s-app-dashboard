@@ -1601,6 +1601,22 @@ func (s *stripCORSWriter) Write(b []byte) (int, error) {
 	return s.ResponseWriter.Write(b)
 }
 
+// Hijack makes *stripCORSWriter satisfy http.Hijacker so handlers that need to
+// take over the raw connection (e.g. the WebSocket log stream) still work even
+// though the writer is wrapped. Without this, the `w.(http.Hijacker)` assertion
+// in handleLogsWS would fail (the embedded interface does not expose Hijack) and
+// every WebSocket upgrade would 500.
+func (s *stripCORSWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	// Strip any headers before the handshake response is written directly to the
+	// connection (the WS handshake bypasses WriteHeader).
+	s.strip()
+	hj, ok := s.ResponseWriter.(http.Hijacker)
+	if !ok {
+		return nil, nil, http.ErrNotSupported
+	}
+	return hj.Hijack()
+}
+
 // basePathHandler serves the app (mux) under an optional base path. With an
 // empty base it is a no-op passthrough. With a base (e.g. "/app") it lets the
 // same SPA + API work at /app/ and /app/api/... by stripping the base for the
