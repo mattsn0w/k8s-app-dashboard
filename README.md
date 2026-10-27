@@ -107,14 +107,17 @@ kubectl apply -f manifests/01-namespace.yaml
 # 2. Create RBAC (ServiceAccount, ClusterRole, ClusterRoleBinding)
 kubectl apply -f manifests/02-rbac.yaml
 
-# 3. Deploy the dashboard
-kubectl apply -f manifests/03-deployment.yaml
+# 3. Build the image (binary + embedded UI), push it, and deploy
+./build-and-deploy.sh
+#   -> docker build + docker push to registry.co.slakin.net/local/deploy-dashboard:latest
+#   -> kubectl apply -f manifests/03-deployment.yaml (Deployment rolls to the image)
+#   -> kubectl rollout status
 
 # 4. (Optional) Deploy demo workloads
 kubectl apply -f manifests/04-demo-workloads.yaml
 ```
 
-The manifest in `03-deployment.yaml` uses a `debian:bookworm-slim` pod with the binary injected via `kubectl cp` or `tar` pipe. For production, replace with a standard `Deployment` using the pushed image.
+The binary (with the UI embedded via Go `//go:embed`) is **baked into the image** at build time (multi-stage `Dockerfile`: static Go build → tiny alpine runtime). The Deployment just runs the image — no binary injection, no `emptyDir`, no `initContainer` — so a recreated pod is self-sufficient. `build-and-deploy.sh` builds, pushes, and rolls out in one step.
 
 ### Locally
 

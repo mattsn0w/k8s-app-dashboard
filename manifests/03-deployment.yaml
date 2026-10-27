@@ -3,16 +3,12 @@
 # The dashboard runs as a Deployment (not a raw Pod) so the platform keeps it
 # alive: restart on crash, reschedule on node drain, and rolling updates.
 #
-# NOTE: This manifest uses a placeholder approach because the binary cannot be
-# pushed to a registry from the sandbox environment. The image is
-# debian:bookworm-slim and a static Go binary is injected into the shared
-# emptyDir (see build-and-deploy.sh). For production, build and push the image
-# using the Dockerfile and set `image:` to the pushed tag; the rest of the spec
-# (probes, ports, volume) is unchanged.
+# The binary (with the UI embedded via Go //go:embed) is baked into the image
+# at build time (see Dockerfile + build-and-deploy.sh). No binary injection,
+# no emptyDir, no initContainer -- a recreated pod is self-sufficient because
+# its image already contains the binary.
 #
-# NOTE: The frontend (web/index.html) is compiled into the binary via Go
-# //go:embed at build time -- no ConfigMap or EMBEDDED_HTML env var is needed
-# to ship the UI (see APP-01).
+# Image: registry.co.slakin.net/local/deploy-dashboard:latest
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -25,49 +21,31 @@ spec:
   selector:
     matchLabels:
       app.kubernetes.io/name: deploy-dashboard
+  # RollingUpdate is fine now: the image carries the binary, so a new replica is
+  # fully functional the moment it schedules (no injection step to wait on).
   strategy:
-    # Recreate, not RollingUpdate: with an injected binary in an emptyDir there
-    # is no image to roll, and a second replica would have no binary to start.
-    type: Recreate
+    type: RollingUpdate
+    rollingUpdate:
+      maxSurge: 1
+      maxUnavailable: 0
   template:
     metadata:
       labels:
         app.kubernetes.io/name: deploy-dashboard
     spec:
       serviceAccountName: deploy-dashboard
-      # initContainer blocks until the static binary is injected into the
-      # shared emptyDir, so the main container never starts against a missing
-      # /app/deploy-dashboard. This is what makes the emptyDir wipe on
-      # recreation safe (see APP-02 / build-and-deploy.sh).
-      initContainers:
-      - name: wait-for-binary
-        image: debian:bookworm-slim
-        command:
-        - sh
-        - -c
-        - |
-          echo "init: waiting for /app/deploy-dashboard to be injected..."
-          while [ ! -f /app/deploy-dashboard ]; do
-            sleep 3
-          done
-          echo "init: binary present, proceeding"
-        volumeMounts:
-        - name: app
-          mountPath: /app
       containers:
       - name: dashboard
-        image: debian:bookworm-slim
-        command: ["sh", "-c"]
+        image: registry.co.slakin.net/local/deploy-dashboard:latest
+        imagePullPolicy: Always
         args:
-        - |
-          echo "Starting deploy-dashboard..."
-          # --base-path=/app: the gateway serves the SPA under /app (the catch-all
-          # / is the gateway-served 503 status page). This makes the SPA + its
-          # relative api/* calls work under /app.
-          exec /app/deploy-dashboard --listen=:8080 --namespace=apps --base-path=/app
-        volumeMounts:
-        - name: app
-          mountPath: /app
+        # The image ENTRYPOINT is `deploy-dashboard`; these are its flags.
+        # --base-path=/app: the gateway serves the SPA under /app (the catch-all
+        # / is the gateway-served 503 status page). This makes the SPA + its
+        # relative api/* calls work under /app.
+        - --listen=:8080
+        - --namespace=apps
+        - --base-path=/app
         ports:
         - containerPort: 8080
           name: http
@@ -89,9 +67,12 @@ spec:
           periodSeconds: 20
           timeoutSeconds: 3
           failureThreshold: 3
-      volumes:
-      - name: app
-        emptyDir: {}
+        securityContext:
+          runAsNonRoot: true
+          runAsUser: 10001
+          allowPrivilegeEscalation: false
+          capabilities:
+            drop: ["ALL"]
 ---
 # Service for the deploy-dashboard app
 apiVersion: v1
