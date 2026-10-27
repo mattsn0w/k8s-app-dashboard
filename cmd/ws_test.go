@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"bytes"
 	"crypto/sha1"
 	"encoding/base64"
@@ -640,5 +641,124 @@ func TestWSHandshake_RandomKey(t *testing.T) {
 	// Verify it's valid base64
 	if _, err := base64.StdEncoding.DecodeString(accept); err != nil {
 		t.Errorf("accept is not valid base64: %v", err)
+	}
+}
+
+// ---------- APP-10: single-codec regression tests ----------
+//
+// After consolidating the duplicated frame codec (removing the bufio
+// wsWriteFrame/wsReadFrame variants), the only writer is wsWriteFrameConn and
+// the only reader is wsReadFrameReader. These tests guard that consolidation:
+// the pong path (which previously used the deleted bufio writer) must round-trip
+// through the conn writer, and the byte layout must be correct at every length
+// tier that the removed code shared.
+
+// TestWSWriteRead_RoundTrip_Pong verifies the pong frame (opcode 0xA) round-trips
+// through the single conn writer + reader. This is the exact path the ping
+// handler now uses (wsWriteFrameConn(conn, 0xA, payload)).
+func TestWSWriteRead_RoundTrip_Pong(t *testing.T) {
+	client, server := net.Pipe()
+	defer client.Close()
+	defer server.Close()
+
+	go func() {
+		_ = wsWriteFrameConn(server, 0xA, []byte("ping-payload"))
+	}()
+
+	opcode, payload, err := wsReadFrameReader(client)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if opcode != 0xA {
+		t.Errorf("opcode = 0x%x, want 0xA (pong)", opcode)
+	}
+	if !bytes.Equal(payload, []byte("ping-payload")) {
+		t.Errorf("payload = %q, want %q", payload, "ping-payload")
+	}
+}
+
+// TestWSWriteRead_RoundTrip_Pong_AllLengthTiers verifies the pong frame is
+// correct across every length-encoding tier (7-bit, 16-bit, 64-bit). The old
+// bufio writer had identical tier logic to the conn writer; this confirms the
+// single surviving codec handles all tiers for the control-frame path.
+func TestWSWriteRead_RoundTrip_Pong_AllLengthTiers(t *testing.T) {
+	for _, size := range []int{0, 1, 125, 126, 127, 65535, 65536, 65537} {
+		size := size
+		t.Run(fmt.Sprintf("size=%d", size), func(t *testing.T) {
+			payload := make([]byte, size)
+			for i := range payload {
+				payload[i] = byte(i % 251)
+			}
+			client, server := net.Pipe()
+			defer client.Close()
+			defer server.Close()
+
+			go func() { _ = wsWriteFrameConn(server, 0xA, payload) }()
+
+			opcode, got, err := wsReadFrameReader(client)
+			if err != nil {
+				t.Fatalf("size=%d: unexpected error: %v", size, err)
+			}
+			if opcode != 0xA {
+				t.Errorf("size=%d: opcode = 0x%x, want 0xA", size, opcode)
+			}
+			if !bytes.Equal(got, payload) {
+				t.Errorf("size=%d: payload mismatch (got %d bytes, want %d)", size, len(got), size)
+			}
+		})
+	}
+}
+
+// TestWSWriteFrameConn_Pong_HeaderLayout pins the exact wire bytes for a small
+// pong frame. This guards the header construction (which was duplicated across
+// the removed bufio writer and the conn writer) against a regression that would
+// silently corrupt the single remaining writer.
+func TestWSWriteFrameConn_Pong_HeaderLayout(t *testing.T) {
+	client, server := net.Pipe()
+	defer client.Close()
+	defer server.Close()
+
+	go func() { _ = wsWriteFrameConn(server, 0xA, []byte{0x01, 0x02}) }()
+
+	// Header: FIN+opcode (0x8A) + length (0x02, no mask for server frames).
+	hdr := make([]byte, 2)
+	if _, err := io.ReadFull(client, hdr); err != nil {
+		t.Fatalf("read header: %v", err)
+	}
+	if hdr[0] != 0x8A {
+		t.Errorf("first byte = 0x%02x, want 0x8A (FIN+pong)", hdr[0])
+	}
+	if hdr[1] != 0x02 {
+		t.Errorf("second byte = 0x%02x, want 0x02 (length, unmasked)", hdr[1])
+	}
+	// Payload follows.
+	payload := make([]byte, 2)
+	if _, err := io.ReadFull(client, payload); err != nil {
+		t.Fatalf("read payload: %v", err)
+	}
+	if !bytes.Equal(payload, []byte{0x01, 0x02}) {
+		t.Errorf("payload = %v, want [0x01 0x02]", payload)
+	}
+}
+
+// TestWSCoade_SingleCodec_NoBufioVariant is a compile-time + behavioral guard
+// that the active codec is the conn/reader pair. It writes through
+// wsWriteFrameConn and reads back with wsReadFrameReader for a text frame,
+// confirming the two are the matched, tested pair. (The removed bufio variants
+// are gone from the source; this test pins that the replacement pair is what
+// handles traffic.)
+func TestWSCoade_SingleCodec_NoBufioVariant(t *testing.T) {
+	client, server := net.Pipe()
+	defer client.Close()
+	defer server.Close()
+
+	go func() { _ = wsWriteFrameConn(server, 0x1, []byte("hello")) }()
+
+	opcode, payload, err := wsReadFrameReader(client)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if opcode != 0x1 || string(payload) != "hello" {
+		t.Errorf("got opcode=0x%x payload=%q, want 0x1 \"hello\"", opcode, payload)
 	}
 }

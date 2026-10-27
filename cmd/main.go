@@ -1290,7 +1290,12 @@ func (c *k8sClient) handleLogsWS(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			if opcode == 0x9 { // ping
-				_ = wsWriteFrame(rw, conn, 0xA, payload)
+				// Reply via the single conn writer (same path as all other writes)
+				// so there is only ever one writer on this socket.
+				if wsWriteFrameConn(conn, 0xA, payload) != nil {
+					errCh <- io.ErrUnexpectedEOF
+					return
+				}
 				continue
 			}
 			if opcode == 0x1 { // text
@@ -1399,70 +1404,6 @@ func (c *k8sClient) handleLogsWS(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	}
-}
-
-func wsWriteFrame(rw *bufio.ReadWriter, conn net.Conn, opcode byte, data []byte) error {
-	var header []byte
-	if len(data) < 126 {
-		header = []byte{0x80 | opcode, byte(len(data))}
-	} else if len(data) < 65536 {
-		header = []byte{0x80 | opcode, 126, byte(len(data) >> 8), byte(len(data))}
-	} else {
-		header = []byte{0x80 | opcode, 127}
-		var lenBuf [8]byte
-		binary.BigEndian.PutUint64(lenBuf[:], uint64(len(data)))
-		header = append(header, lenBuf[:]...)
-	}
-	if _, err := rw.Write(append(header, data...)); err != nil {
-		return err
-	}
-	return rw.Flush()
-}
-
-func wsReadFrame(rw *bufio.ReadWriter) (byte, []byte, error) {
-	head := make([]byte, 2)
-	if _, err := io.ReadFull(rw, head); err != nil {
-		return 0, nil, err
-	}
-	opcode := head[0] & 0x0f
-	masked := head[1]&0x80 != 0
-	var length uint64
-	switch head[1] & 0x7f {
-	case 126:
-		ext := make([]byte, 2)
-		if _, err := io.ReadFull(rw, ext); err != nil {
-			return 0, nil, err
-		}
-		length = uint64(binary.BigEndian.Uint16(ext))
-	case 127:
-		ext := make([]byte, 8)
-		if _, err := io.ReadFull(rw, ext); err != nil {
-			return 0, nil, err
-		}
-		length = binary.BigEndian.Uint64(ext)
-	default:
-		length = uint64(head[1] & 0x7f)
-	}
-	if length > 1024*1024 {
-		return 0, nil, fmt.Errorf("frame too large: %d", length)
-	}
-	var mask []byte
-	if masked {
-		mask = make([]byte, 4)
-		if _, err := io.ReadFull(rw, mask); err != nil {
-			return 0, nil, err
-		}
-	}
-	payload := make([]byte, length)
-	if _, err := io.ReadFull(rw, payload); err != nil {
-		return 0, nil, err
-	}
-	if masked {
-		for i := range payload {
-			payload[i] ^= mask[i%4]
-		}
-	}
-	return opcode, payload, nil
 }
 
 // wsWriteFrameConn writes a WebSocket frame directly to the conn.
@@ -1682,5 +1623,4 @@ func main() {
 	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 		log.Fatalf("serve: %v", err)
 	}
-	_ = bufio.Scanner{} // keep import
 }
