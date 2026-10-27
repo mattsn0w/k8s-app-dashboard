@@ -16,7 +16,7 @@ Each issue is a single markdown file in this directory, capturing **type**, **su
 |---|---|---|---|
 | **Critical** | — | — | — _(SEC-01 → WONT FIX, see Security table)_ |
 | **High** | — | UX-01, UX-03 | — _(SEC-04 → WONT FIX, see Security table)_ |
-| **Medium** | APP-02, APP-03, APP-06, APP-11, APP-13, UX-02, UX-04, UX-05, UX-07, UX-11, UX-12, UX-13, UX-15, UX-16, UX-17 | APP-05, APP-07, APP-08, APP-09, APP-14, UX-10, UX-14, UX-18 | — |
+| **Medium** | APP-02, APP-03, APP-06, APP-13, UX-02, UX-04, UX-05, UX-07, UX-11, UX-12, UX-13, UX-15, UX-16, UX-17 | APP-05, APP-07, APP-08, APP-09, APP-14, UX-10, UX-14, UX-18 | — |
 | **Low** | (see Medium column items that are Low) | | |
 
 \* SEC-05 is Low severity / Low effort (listed here for placement; it sits in the Low band).
@@ -50,7 +50,7 @@ Each issue is a single markdown file in this directory, capturing **type**, **su
 | APP-08 | No read deadline on the WebSocket | Low | Medium |
 | APP-09 | No structured/request logging | Low | Medium |
 | APP-10 | Duplicated WebSocket frame codec | Low | Medium | ✅ FIXED (single conn/reader codec; bufio variants removed) |
-| APP-11 | Dockerfile copies go.sum that does not exist | Low | Low |
+| APP-11 | Dockerfile copies go.sum that does not exist | Low | Low | ✅ RESOLVED (uses `go.sum*` glob; verified via real docker build) |
 | APP-12 | Manifests lack resource limits, probes, controller | Medium | Low |
 | APP-13 | Missing .gitignore / module hygiene | Low | Low |
 | APP-14 | N+1 K8s API calls per list (no caching) | Low | Medium |
