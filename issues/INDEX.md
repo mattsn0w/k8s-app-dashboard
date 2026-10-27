@@ -16,7 +16,7 @@ Each issue is a single markdown file in this directory, capturing **type**, **su
 |---|---|---|---|
 | **Critical** | — | — | — _(SEC-01 → WONT FIX, see Security table)_ |
 | **High** | — | UX-01, UX-03 | — _(SEC-04 → WONT FIX, see Security table)_ |
-| **Medium** | APP-02, APP-03, APP-04, APP-06, APP-11, APP-13, UX-02, UX-04, UX-05, UX-07, UX-11, UX-12, UX-13, UX-15, UX-16, UX-17 | APP-05, APP-07, APP-08, APP-09, APP-10, APP-14, UX-10, UX-14, UX-18 | — |
+| **Medium** | APP-02, APP-03, APP-06, APP-11, APP-13, UX-02, UX-04, UX-05, UX-07, UX-11, UX-12, UX-13, UX-15, UX-16, UX-17 | APP-05, APP-07, APP-08, APP-09, APP-10, APP-14, UX-10, UX-14, UX-18 | — |
 | **Low** | (see Medium column items that are Low) | | |
 
 \* SEC-05 is Low severity / Low effort (listed here for placement; it sits in the Low band).
@@ -43,7 +43,7 @@ Each issue is a single markdown file in this directory, capturing **type**, **su
 | APP-01 | Stale embed_gen.go — two sources of truth for the UI | Medium | Low | ✅ FIXED |
 | APP-02 | Dashboard runs as a raw Pod, not a Deployment | Medium | Low | ✅ FIXED |
 | APP-03 | No readiness or liveness probes | Medium | Low | ✅ FIXED |
-| APP-04 | NodePort / port 31143 hard-coded | Low | Low |
+| APP-04 | NodePort / port 31143 hard-coded | Low | Low | ✅ FIXED (script derives real URL from LB svc; stale doc refs removed) |
 | APP-05 | No rate limiting on any endpoint | Medium | Medium |
 | APP-06 | No server-level request timeouts | Medium | Low |
 | APP-07 | No server-sent keepalive/ping on the WebSocket | Low | Medium |

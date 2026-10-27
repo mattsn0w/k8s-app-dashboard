@@ -85,16 +85,7 @@ The `Dockerfile` uses a two-stage build: `golang:1.27-alpine` for compilation, `
 
 ### Embedding the Frontend
 
-The SPA is embedded into the binary at build time via `embed_gen.go`, which base64-encodes `web/index.html`. To regenerate:
-
-```bash
-# Generate the base64-encoded HTML
-base64 -w0 web/index.html > /tmp/html.b64
-
-# Update embed_gen.go (or use the EMBEDDED_HTML env var at runtime)
-```
-
-At runtime, the `EMBEDDED_HTML` environment variable (base64) overrides the compiled-in HTML. This allows updating the UI without rebuilding the binary.
+The SPA is embedded into the binary at build time via Go `//go:embed` (`embed.go` at the module root embeds the whole `web/` tree). There is no separate asset to ship and no runtime override — to change the UI, edit `web/index.html`, rebuild the image, and roll out (see `build-and-deploy.sh`).
 
 ## Running
 
@@ -196,7 +187,7 @@ deploy-dashboard/
 │   ├── 02-rbac.yaml
 │   ├── 03-deployment.yaml
 │   └── 04-demo-workloads.yaml
-├── embed_gen.go         # Base64-embedded HTML for the binary
+├── embed.go             # //go:embed all:web (UI baked into the binary)
 ├── Dockerfile           # Two-stage build (golang → alpine)
 ├── Makefile             # test, test-js, vet, build, fmt
 ├── go.mod               # module deploy-dashboard (no dependencies)
