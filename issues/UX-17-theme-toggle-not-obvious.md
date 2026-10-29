@@ -17,3 +17,11 @@ Low. The toggle functions correctly; the issue is making its state and scope leg
 
 ## Justification for the effort level
 Low. Swap the icon to reflect the *current* theme (moon when light, sun when dark) and add a `title`. A few lines.
+
+## Review — 2026-10-27 (UX re-check)
+
+**Status: 🔴 STILL PRESENT** (re-verified 2026-10-27)
+
+Evidence in `web/index.html`:
+
+The theme icon reflects the *action* (moon when light = 'switch to dark'), not the *current* theme as the issue requests (moon when dark). There is no `title`. Borderline: the action-oriented icon + 'Switch to X' label is arguably clear, but the state-icon request is unmet.

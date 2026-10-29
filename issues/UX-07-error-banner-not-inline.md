@@ -17,3 +17,11 @@ Low. Presentation/consistency. The failure is still visible; it is just in the w
 
 ## Justification for the effort level
 Low. Move the failure into a banner element above the table with a Retry button; keep the empty-state row for the genuine zero-deployments case. A few lines.
+
+## Review — 2026-10-27 (UX re-check)
+
+**Status: 🔴 STILL PRESENT** (re-verified 2026-10-27)
+
+Evidence in `web/index.html`:
+
+`fetchDeployments` catch-block still injects a pseudo-row `<tr><td colspan="3" class="empty-state">Failed to load deployments…` into the table body instead of a banner.

@@ -17,3 +17,11 @@ Medium. Performance/memory under a normal use case, not a crash or data issue. N
 
 ## Justification for the effort level
 Low. When the line count exceeds a cap (e.g., 2000), drop the oldest nodes. A few lines in the append path.
+
+## Review — 2026-10-27 (UX re-check)
+
+**Status: 🔴 STILL PRESENT** (re-verified 2026-10-27)
+
+Evidence in `web/index.html`:
+
+`openLogModal` does `contentEl.appendChild(div)` per line with no cap/trim; long tails grow the DOM unboundedly.

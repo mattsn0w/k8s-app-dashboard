@@ -17,3 +17,11 @@ Medium. Affects a subset of users and keyboard workflows; not a blocker for the 
 
 ## Justification for the effort level
 Medium. Adding `aria-label`s is quick, but proper modal focus trapping, `role`/`aria-expanded` on the menu, and a focusable toggle switch with `role="switch"` is a broader pass — hence Medium.
+
+## Review — 2026-10-27 (UX re-check)
+
+**Status: 🔴 STILL PRESENT** (re-verified 2026-10-27)
+
+Evidence in `web/index.html`:
+
+Only 1 `aria-label` in the whole file. Icon-only buttons (logs/terminate/delete, user menu, theme/view-mode/SSH/tokens, modal closes) have no accessible name. Tabs have `role="tab"` but the rest of the controls lack roles/labels/focus management.

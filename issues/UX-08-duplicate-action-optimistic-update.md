@@ -17,3 +17,11 @@ Low. Transient visual inconsistency, self-healing. No data impact.
 
 ## Justification for the effort level
 Low. Either drop the optimistic mutation and rely on the (immediate) refresh, or mark the row "updating…" until the confirmed refresh returns. A few lines.
+
+## Review — 2026-10-27 (UX re-check)
+
+**Status: 🔴 STILL PRESENT** (re-verified 2026-10-27)
+
+Evidence in `web/index.html`:
+
+`toggleDeployment` still does the optimistic mutation `d.replicas=targetReplicas; d.running=run; renderDeployments();` then `setTimeout(fetchDeployments,1500)`.

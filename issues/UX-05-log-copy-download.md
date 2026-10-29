@@ -17,3 +17,11 @@ Medium. Convenience that materially improves the core debugging loop. Not a bloc
 
 ## Justification for the effort level
 Low. Add "Copy" (`navigator.clipboard.writeText`) and "Download" (Blob + `<a download>`) buttons in the modal footer. A few lines.
+
+## Review — 2026-10-27 (UX re-check)
+
+**Status: 🔴 STILL PRESENT** (re-verified 2026-10-27)
+
+Evidence in `web/index.html`:
+
+The log modal footer has only a status text + 'Follow: real-time' label; no Copy/Download buttons or handlers.

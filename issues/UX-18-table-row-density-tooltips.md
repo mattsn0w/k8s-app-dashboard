@@ -17,3 +17,11 @@ Low. Enhancement, not a defect. The primary data is visible; this is about reach
 
 ## Justification for the effort level
 Medium. A tooltip is cheap; a proper expandable row (fetching pod/replica-set detail on demand, rendering image/restarts/age) involves both API surface and DOM, hence Medium.
+
+## Review — 2026-10-27 (UX re-check)
+
+**Status: 🔴 STILL PRESENT** (re-verified 2026-10-27)
+
+Evidence in `web/index.html`:
+
+Deployment rows are 3 columns (Name/Status/Actions); no hover tooltip or expandable row for image/restarts/age/pod IPs/annotations.

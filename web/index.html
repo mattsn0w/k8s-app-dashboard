@@ -52,6 +52,13 @@ tr:hover td{background:var(--bgColor-attentive)}
 .btn-icon.warning:hover{background:var(--action-terminate);color:var(--bgColor-default)}
 .btn-icon.logs{color:var(--action-logs);border-color:var(--action-logs)}
 .btn-icon.logs:hover{background:var(--action-logs);color:var(--bgColor-default)}
+/* UX-02: in-flight (busy) state for action controls -- disables + shows a spinner so a
+   user can't double-trigger a mutation, and gets immediate "working" feedback. */
+.btn-icon.busy,.toggle.busy{opacity:.55;cursor:wait;pointer-events:none}
+.toggle.busy{border-color:var(--fgColor-accent)}
+.busy-spinner{display:inline-block;width:14px;height:14px;border:2px solid var(--fgColor-muted);border-top-color:var(--fgColor-accent);border-radius:50%;animation:spin .7s linear infinite}
+.btn-icon .busy-spinner{width:16px;height:16px}
+@keyframes spin{to{transform:rotate(360deg)}}
 .status-badge{display:inline-flex;align-items:center;gap:.375rem;padding:.25rem .625rem;border-radius:2em;font-size:.7rem;font-weight:600;white-space:nowrap}
 .status-badge .octicon{width:12px;height:12px}
 .status-badge.success{background:color-mix(in srgb,var(--status-good) 20%,transparent);color:var(--status-good);border:1px solid var(--status-good)}
@@ -75,7 +82,12 @@ tr:hover td{background:var(--bgColor-attentive)}
 .modal-body .log-line{display:block;padding:.1rem 0}
 .modal-body .log-line:hover{background:var(--bgColor-muted);border-radius:3px}
 .modal-footer{padding:.75rem 1rem;border-top:1px solid var(--borderColor-default);display:flex;justify-content:flex-end;gap:.5rem;align-items:center}
-.modal-footer .status-text{font-size:.7rem;color:var(--fgColor-muted);margin-right:auto}
+ .modal-footer .status-text{font-size:.7rem;color:var(--fgColor-muted);margin-right:auto}
+/* UX-03: pod/container selector bar in the log modal */
+.log-selectors{display:flex;gap:.75rem;padding:.5rem 1rem;border-bottom:1px solid var(--borderColor-default);background:var(--bgColor-muted);align-items:center}
+.selector-label{display:flex;align-items:center;gap:.4rem;font-size:.72rem;color:var(--fgColor-muted)}
+.log-selectors select{font:inherit;font-size:.78rem;color:var(--fgColor-default);background:var(--bgColor-inset);border:1px solid var(--borderColor-default);border-radius:6px;padding:.25rem .5rem;max-width:16rem}
+.log-selectors select:focus{outline:2px solid var(--fgColor-accent);outline-offset:1px}
 .settings-modal textarea{width:100%;min-height:120px;background:var(--bgColor-muted);border:1px solid var(--borderColor-default);border-radius:6px;color:var(--fgColor-default);font-family:"SF Mono","Fira Code",monospace;font-size:.8rem;padding:.75rem;resize:vertical}
 .settings-modal textarea:focus{outline:none;border-color:var(--borderColor-accent);box-shadow:0 0 0 3px color-mix(in srgb,var(--fgColor-accent) 20%,transparent)}
 .help-btn{display:inline-flex;align-items:center;justify-content:center;width:24px;height:24px;background:var(--bgColor-muted);border:1px solid var(--borderColor-default);border-radius:50%;color:var(--fgColor-muted);font-size:.7rem;cursor:pointer;position:relative}
@@ -114,6 +126,35 @@ tr:hover td{background:var(--bgColor-attentive)}
 .res-label{display:flex;justify-content:space-between;gap:.5rem;font-size:.68rem;color:var(--fgColor-muted);font-variant-numeric:tabular-nums;white-space:nowrap}
 .res-label b{color:var(--fgColor-default);font-weight:600}
 .node-role{display:inline-block;font-size:.65rem;color:var(--fgColor-muted);background:var(--bgColor-muted);border:1px solid var(--borderColor-muted);border-radius:2em;padding:.1rem .5rem;margin-top:.25rem}
+
+/* ---------- UX-01: toast notifications (replace alert()) ---------- */
+#toastContainer{position:fixed;top:1rem;right:1rem;z-index:400;display:flex;flex-direction:column;gap:.5rem;max-width:min(360px,90vw);pointer-events:none}
+.toast{pointer-events:auto;display:flex;align-items:flex-start;gap:.6rem;padding:.65rem .75rem;background:var(--bgColor-overlay);border:1px solid var(--borderColor-default);border-left-width:3px;border-radius:6px;box-shadow:var(--shadow-lg);font-size:.8rem;line-height:1.4;animation:toast-in .18s ease-out}
+.toast .toast-icon{flex-shrink:0;margin-top:1px}
+.toast .toast-body{flex:1;min-width:0}
+.toast .toast-title{font-weight:600;color:var(--fgColor-default)}
+.toast .toast-msg{color:var(--fgColor-muted);word-break:break-word}
+.toast .toast-close{flex-shrink:0;background:none;border:none;color:var(--fgColor-muted);cursor:pointer;padding:.1rem .25rem;border-radius:4px;display:inline-flex;align-items:center}
+.toast .toast-close:hover{color:var(--fgColor-default);background:var(--bgColor-attentive)}
+.toast.success{border-left-color:var(--status-good)}
+.toast.success .toast-icon{color:var(--status-good)}
+.toast.error{border-left-color:var(--fgColor-danger)}
+.toast.error .toast-icon{color:var(--fgColor-danger)}
+.toast.info{border-left-color:var(--fgColor-accent)}
+.toast.info .toast-icon{color:var(--fgColor-accent)}
+.toast.leaving{animation:toast-out .18s ease-in forwards}
+@keyframes toast-in{from{opacity:0;transform:translateX(12px)}to{opacity:1;transform:translateX(0)}}
+@keyframes toast-out{to{opacity:0;transform:translateX(12px)}}
+
+/* ---------- UX-01: in-app confirm modal (replace confirm()) ---------- */
+#confirmModal .modal{max-width:440px}
+#confirmModal .confirm-body{font-size:.82rem;line-height:1.6;color:var(--fgColor-default)}
+#confirmModal .confirm-body .confirm-detail{margin-top:.6rem;padding:.55rem .75rem;background:var(--bgColor-attentive);border:1px solid var(--borderColor-default);border-radius:6px;font-size:.75rem;color:var(--fgColor-muted)}
+#confirmModal .confirm-body .confirm-detail code{background:var(--bgColor-inset);padding:.05rem .3rem;border-radius:4px;font-family:ui-monospace,monospace;color:var(--fgColor-default)}
+#confirmModal.danger .modal-header{background:color-mix(in srgb, var(--fgColor-danger) 12%, var(--bgColor-muted))}
+#confirmModal.danger .modal-header .octicon{color:var(--fgColor-danger)}
+#confirmModal.danger #confirmModalOk{background:var(--action-delete);border-color:var(--action-delete);color:#fff}
+#confirmModal.danger #confirmModalOk:hover{filter:brightness(1.08)}
 </style>
 </head>
 <body>
@@ -187,6 +228,29 @@ tr:hover td{background:var(--bgColor-attentive)}
     </div>
   </div>
 </header>
+
+<!-- UX-01: non-blocking toast notifications -->
+<div id="toastContainer" aria-live="polite" aria-atomic="false"></div>
+
+<!-- UX-01: in-app confirm modal (replaces native confirm()) -->
+<div class="modal-overlay" id="confirmModal" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle">
+  <div class="modal">
+    <div class="modal-header">
+      <h3><svg class="octicon" width="16" height="16" id="confirmModalIcon"><use href="#octicon-alert"/></svg><span id="confirmModalTitle">Are you sure?</span></h3>
+      <div class="modal-actions">
+        <button class="modal-close" onclick="confirmActionCancel()" aria-label="Cancel"><svg class="octicon" width="16" height="16"><use href="#octicon-x-mark"/></svg></button>
+      </div>
+    </div>
+    <div class="modal-body confirm-body">
+      <div id="confirmModalMsg"></div>
+      <div class="confirm-detail" id="confirmModalDetail" hidden></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-outline" id="confirmModalCancel" onclick="confirmActionCancel()">Cancel</button>
+      <button class="btn btn-primary" id="confirmModalOk" onclick="confirmActionOk()">Confirm</button>
+    </div>
+  </div>
+</div>
 
 <main>
   <div class="tabs" role="tablist">
@@ -266,6 +330,15 @@ tr:hover td{background:var(--bgColor-attentive)}
       <div class="modal-actions">
         <button class="modal-close" onclick="closeLogModal()"><svg class="octicon" width="16" height="16"><use href="#octicon-x-mark"/></svg></button>
       </div>
+    </div>
+    <!-- UX-03: choose which pod / container to stream (hidden unless multi-pod or multi-container) -->
+    <div class="log-selectors" id="logSelectors" hidden>
+      <label class="selector-label">Pod
+        <select id="logPodSelect" aria-label="Pod"></select>
+      </label>
+      <label class="selector-label">Container
+        <select id="logContainerSelect" aria-label="Container"></select>
+      </label>
     </div>
     <div class="modal-body"><pre id="logContent"></pre></div>
     <div class="modal-footer">
@@ -423,7 +496,54 @@ function safeWorkloadURL(u) {
 let deployments = [];
 let logAbortController = null;
 let logWS = null;
+// UX-03: current log selection + the fetched pod list (to populate the selectors)
+let logPods = [];        // [{name, ready, containers:[string]}] for the open deployment
+let logPod = '';         // currently-streamed pod name
+let logContainer = '';   // currently-streamed container name
+let logDeploymentName = ''; // the deployment the log modal is showing (for reconnect)
 
+// UX-02: in-flight (busy) tracking for mutation actions. A Set of deployment
+// names whose scale/terminate/delete request is in flight. Prevents double
+// clicks and drives the spinner/disabled state in the row's action controls.
+const busyActions = new Set();
+
+// Mark a deployment row's action controls as working (or not) in place, without
+// a full re-render. Swaps each control's content for a spinner while busy and
+// disables it so the user can't double-trigger.
+function setRowBusy(name, busy) {
+  const row = document.querySelector(`#deploymentsBody tr[data-name="${CSS.escape(name)}"]`);
+  if (!row) return;
+  const controls = row.querySelectorAll('.toggle, .btn-icon.warning, .btn-icon.danger');
+  controls.forEach(el => {
+    el.classList.toggle('busy', busy);
+    el.setAttribute('aria-disabled', busy ? 'true' : 'false');
+    if (busy) {
+      if (!el.dataset._orig) el.dataset._orig = el.innerHTML;
+      el.innerHTML = '<span class="busy-spinner" role="status" aria-label="Working"></span>';
+    } else if (el.dataset._orig) {
+      el.innerHTML = el.dataset._orig;
+      delete el.dataset._orig;
+    }
+  });
+}
+
+// Begin a mutation on a row: no-op (returns false) if already in flight so a
+// fast double-click can't fire a second request. Otherwise marks the row busy.
+function beginBusy(name) {
+  if (busyActions.has(name)) return false;
+  busyActions.add(name);
+  setRowBusy(name, true);
+  return true;
+}
+
+// End a mutation on a row: clears the busy state and re-enables the controls.
+function endBusy(name) {
+  busyActions.delete(name);
+  setRowBusy(name, false);
+}
+
+// UX-02: when a busy row is re-rendered (e.g. by a poll), keep its controls in
+// the busy state so the spinner doesn't flicker off mid-request.
 function renderDeployments() {
   const tbody = document.getElementById('deploymentsBody');
   const dc = document.getElementById('deployCount');
@@ -435,7 +555,13 @@ function renderDeployments() {
     </td></tr>`;
     return;
   }
-  tbody.innerHTML = deployments.map(d => `
+  tbody.innerHTML = deployments.map(d => {
+    // UX-02: if a mutation for this deployment is in flight, render its action
+    // controls as disabled + spinner (so a poll-driven re-render doesn't drop
+    // the busy state).
+    const busy = busyActions.has(d.name);
+    const spin = '<span class="busy-spinner" role="status" aria-label="Working"></span>';
+    return `
     <tr data-name="${d.name}">
       <td class="name-cell">
         <div class="name-cell-inner">
@@ -460,63 +586,199 @@ function renderDeployments() {
       </td>
       <td>
         <div class="actions-cell">
-          <div class="toggle ${d.running ? 'on' : ''}" onclick="toggleDeployment('${d.name}', ${!d.running})" title="${d.running ? 'Stop' : 'Start'}"></div>
+          <div class="toggle ${d.running ? 'on' : ''} ${busy ? 'busy' : ''}" ${busy ? 'aria-disabled="true"' : ''} onclick="${busy ? '' : `toggleDeployment('${d.name}', ${!d.running})`}" title="${d.running ? 'Stop' : 'Start'}">${busy ? spin : ''}</div>
           <button class="btn-icon logs" onclick="showLogs('${d.name}')" title="View logs">
             <svg class="octicon" width="16" height="16"><use href="#octicon-log"/></svg>
           </button>
-          <button class="btn-icon warning" onclick="killPods('${d.name}')" title="Terminate pods">
-            <svg class="octicon" width="16" height="16"><use href="#octicon-issue-reopened"/></svg>
+          <button class="btn-icon warning ${busy ? 'busy' : ''}" ${busy ? 'aria-disabled="true"' : ''} onclick="${busy ? '' : `killPods('${d.name}')`}" title="Terminate pods">
+            ${busy ? spin : '<svg class="octicon" width="16" height="16"><use href="#octicon-issue-reopened"/></svg>'}
           </button>
           ${viewMode === 'advanced' ? `
-          <button class="btn-icon danger" onclick="deleteDeployment('${d.name}')" title="Delete deployment">
-            <svg class="octicon" width="16" height="16"><use href="#octicon-crosshairs"/></svg>
+          <button class="btn-icon danger ${busy ? 'busy' : ''}" ${busy ? 'aria-disabled="true"' : ''} onclick="${busy ? '' : `deleteDeployment('${d.name}')`}" title="Delete deployment">
+            ${busy ? spin : '<svg class="octicon" width="16" height="16"><use href="#octicon-crosshairs"/></svg>'}
           </button>` : ''}
         </div>
       </td>
-    </tr>
-  `).join('');
+    </tr>`;
+  }).join('');
 }
+
+// ---------- UX-01: toast notifications ----------
+// Non-blocking, auto-dismissing toasts. Replaces alert() for all feedback.
+// variant: 'success' | 'error' | 'info'. Returns the toast element (for tests).
+function showToast(message, opts = {}) {
+  const variant = opts.variant || 'info';
+  const container = document.getElementById('toastContainer');
+  if (!container) return null;
+  const icons = { success: 'check-circle', error: 'alert', info: 'info' };
+  const titles = { success: opts.title || 'Success', error: opts.title || 'Error', info: opts.title || '' };
+  const el = document.createElement('div');
+  el.className = `toast ${variant}`;
+  el.setAttribute('role', variant === 'error' ? 'alert' : 'status');
+  const titleEl = titles[variant]
+    ? `<div class="toast-title">${titles[variant]}</div>` : '';
+  el.innerHTML = `
+    <svg class="octicon toast-icon" width="16" height="16"><use href="#octicon-${icons[variant]||'info'}"/></svg>
+    <div class="toast-body">${titleEl}<div class="toast-msg"></div></div>
+    <button class="toast-close" aria-label="Dismiss"><svg class="octicon" width="14" height="14"><use href="#octicon-x-mark"/></svg></button>`;
+  el.querySelector('.toast-msg').textContent = message; // textContent: no HTML injection
+  const dismiss = () => {
+    if (el.classList.contains('leaving')) return;
+    el.classList.add('leaving');
+    el.addEventListener('animationend', () => el.remove(), { once: true });
+  };
+  el.querySelector('.toast-close').addEventListener('click', dismiss);
+  container.appendChild(el);
+  const duration = opts.duration != null ? opts.duration : (variant === 'error' ? 8000 : 4000);
+  if (duration > 0) setTimeout(dismiss, duration);
+  return el;
+}
+
+// ---------- UX-01: in-app confirm modal ----------
+// Promise-based drop-in replacement for the blocking confirm().
+// opts: { title, message, detail (HTML, sanitized via innerHTML), confirmLabel, danger }
+// Resolves true on OK, false on cancel/escape/overlay-click.
+let confirmResolver = null;
+function confirmAction(opts = {}) {
+  const modal = document.getElementById('confirmModal');
+  const icon = document.getElementById('confirmModalIcon');
+  const title = document.getElementById('confirmModalTitle');
+  const msg = document.getElementById('confirmModalMsg');
+  const detail = document.getElementById('confirmModalDetail');
+  const ok = document.getElementById('confirmModalOk');
+  const danger = !!opts.danger;
+  modal.classList.toggle('danger', danger);
+  icon.innerHTML = `<use href="#octicon-${danger ? 'trash' : 'alert'}"/>`;
+  title.textContent = opts.title || 'Are you sure?';
+  msg.textContent = opts.message || '';
+  if (opts.detail) { detail.hidden = false; detail.innerHTML = opts.detail; } else { detail.hidden = true; detail.innerHTML = ''; }
+  ok.textContent = opts.confirmLabel || 'Confirm';
+  modal.classList.add('open');
+  // Focus the safe (Cancel) button by default, not the destructive one.
+  document.getElementById('confirmModalCancel').focus();
+  return new Promise(resolve => { confirmResolver = resolve; });
+}
+function _confirmResolve(value) {
+  const modal = document.getElementById('confirmModal');
+  modal.classList.remove('open');
+  if (confirmResolver) { const r = confirmResolver; confirmResolver = null; r(value); }
+}
+function confirmActionOk() { _confirmResolve(true); }
+function confirmActionCancel() { _confirmResolve(false); }
+
+// Overlay click + Escape cancel the confirm modal.
+document.getElementById('confirmModal').addEventListener('click', e => { if (e.target === e.currentTarget) confirmActionCancel(); });
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && document.getElementById('confirmModal').classList.contains('open')) confirmActionCancel(); });
 
 async function toggleDeployment(name, run) {
   const d = deployments.find(x => x.name === name);
   if (!d) return;
-  const targetReplicas = run ? (d.replicas === 0 ? 1 : d.replicas) : 0;
+  if (!beginBusy(name)) return; // UX-02: already in flight -- ignore double-click
   try {
+    const targetReplicas = run ? (d.replicas === 0 ? 1 : d.replicas) : 0;
     await api(`api/scale?deployment=${encodeURIComponent(name)}`, { method: 'POST', body: JSON.stringify({ replicas: targetReplicas }) });
     d.replicas = targetReplicas;
     d.running = run;
     renderDeployments();
     setTimeout(fetchDeployments, 1500);
-  } catch (err) { alert(`Failed to scale ${name}: ${err.message}`); }
+  } catch (err) { showToast(`Failed to scale ${name}: ${err.message}`, { variant: 'error' }); }
+  finally { endBusy(name); }
 }
 
 async function killPods(name) {
-  if (!confirm(`Terminate all pods for deployment "${name}"?\nThe deployment controller will recreate them.`)) return;
+  const d = deployments.find(x => x.name === name);
+  if (!d) return;
+  const ok = await confirmAction({
+    title: 'Terminate pods',
+    message: `Terminate all pods for deployment "${name}"? The deployment controller will recreate them.`,
+    confirmLabel: 'Terminate',
+    danger: true,
+  });
+  if (!ok) return;
+  if (!beginBusy(name)) return; // UX-02: already in flight -- ignore double-click
   try {
     await api(`api/kill-pods?deployment=${encodeURIComponent(name)}`, { method: 'POST' });
     setTimeout(fetchDeployments, 1000);
-  } catch (err) { alert(`Failed to terminate pods: ${err.message}`); }
+  } catch (err) { showToast(`Failed to terminate pods: ${err.message}`, { variant: 'error' }); }
+  finally { endBusy(name); }
 }
 
 async function deleteDeployment(name) {
-  if (!confirm(`Delete deployment "${name}"?\nThis will remove the deployment and all its pods.\nThis cannot be undone.`)) return;
+  const d = deployments.find(x => x.name === name);
+  if (!d) return;
+  const running = d ? (d.ready ?? 0) : 0;
+  const ok = await confirmAction({
+    title: 'Delete deployment',
+    message: `Delete deployment "${name}"? This cannot be undone.`,
+    confirmLabel: 'Delete',
+    danger: true,
+    detail: running > 0
+      ? `This will remove <code>${name}</code> and its <b>${running}</b> running pod(s).`
+      : `This will remove <code>${name}</code>.`,
+  });
+  if (!ok) return;
+  if (!beginBusy(name)) return; // UX-02: already in flight -- ignore double-click
   try {
     await api(`api/delete-deployment?deployment=${encodeURIComponent(name)}`, { method: 'DELETE' });
     setTimeout(fetchDeployments, 1000);
-  } catch (err) { alert(`Failed to delete deployment: ${err.message}`); }
+  } catch (err) { showToast(`Failed to delete deployment: ${err.message}`, { variant: 'error' }); }
+  finally { endBusy(name); }
+}
+
+// UX-03: populate the Pod/Container <select>s from the fetched pod list.
+// The bar is hidden for the common single-pod/single-container case.
+function populateLogSelectors() {
+  const bar = document.getElementById('logSelectors');
+  const podSel = document.getElementById('logPodSelect');
+  const ctrSel = document.getElementById('logContainerSelect');
+  const multi = logPods.length > 1 || (logPods[0] && logPods[0].containers.length > 1);
+  bar.hidden = !multi;
+  if (!multi) return;
+  // Pod options: mark non-ready pods so the user knows which are healthy.
+  podSel.innerHTML = logPods.map(pod => {
+    const label = pod.ready ? pod.name : `${pod.name} (not ready)`;
+    const sel = pod.name === logPod ? ' selected' : '';
+    return `<option value="${pod.name}"${sel}>${label}</option>`;
+  }).join('');
+  // Container options for the currently-selected pod.
+  const cur = logPods.find(p => p.name === logPod) || logPods[0];
+  const ctrs = (cur && cur.containers) || [];
+  ctrSel.innerHTML = ctrs.map(c => {
+    const sel = c === logContainer ? ' selected' : '';
+    return `<option value="${c}"${sel}>${c}</option>`;
+  }).join('');
+}
+
+// Re-stream the log for the currently-selected pod/container (closes the old
+// WS, clears the view, opens a new one). Used by the selector change handlers.
+function restartLogStream() {
+  const deploymentName = logDeploymentName;
+  if (!deploymentName) return;
+  openLogModalFor(deploymentName, logPod, logContainer);
 }
 
 async function showLogs(deploymentName) {
   let pods;
   try { pods = await api(`api/pods?deployment=${encodeURIComponent(deploymentName)}`); }
-  catch (err) { alert(`Failed to fetch pods: ${err.message}`); return; }
-  if (!pods || pods.length === 0) { alert(`No pods found for ${deploymentName}`); return; }
+  catch (err) { showToast(`Failed to fetch pods: ${err.message}`, { variant: 'error' }); return; }
+  if (!pods || pods.length === 0) { showToast(`No pods found for ${deploymentName}`, { variant: 'info' }); return; }
+  logPods = pods;
   const pod = pods.find(p => p.ready) || pods[0];
-  const container = pod.containers[0] || '';
-  openLogModal(deploymentName, pod.name, container);
+  logPod = pod.name;
+  logContainer = pod.containers[0] || '';
+  logDeploymentName = deploymentName;
+  // Wire the selector change handlers once (they read the current module state).
+  const podSel = document.getElementById('logPodSelect');
+  const ctrSel = document.getElementById('logContainerSelect');
+  podSel.onchange = () => { logPod = podSel.value; populateLogSelectors(); restartLogStream(); };
+  ctrSel.onchange = () => { logContainer = ctrSel.value; restartLogStream(); };
+  populateLogSelectors();
+  openLogModalFor(deploymentName, logPod, logContainer);
 }
 
-function openLogModal(deploymentName, podName, containerName) {
+// Open the log modal and stream the given pod/container. Reuses the existing
+// teardown (close WS, abort any HTTP fetch) and the subPath-aware WS URL.
+function openLogModalFor(deploymentName, podName, containerName) {
   if (logWS) { logWS.close(); logWS = null; }
   if (logAbortController) { logAbortController.abort(); logAbortController = null; }
   const modal = document.getElementById('logModal');
@@ -549,10 +811,9 @@ function openLogModal(deploymentName, podName, containerName) {
         } else if (msg.end) {
           status.textContent = msg.error ? `Stream ended: ${msg.error}, reconnecting in 3s…` : 'Stream ended, reconnecting in 3s…';
           if (!modal.classList.contains('open')) return;
+          // Reconnect to the CURRENT selection (not a stale closure value).
           setTimeout(() => {
-            if (modal.classList.contains('open')) {
-              openLogModal(deploymentName, podName, containerName);
-            }
+            if (modal.classList.contains('open')) restartLogStream();
           }, 3000);
         } else if (msg.error) {
           status.textContent = `Error: ${msg.error}`;
@@ -578,12 +839,23 @@ function openLogModal(deploymentName, podName, containerName) {
     if (modal.classList.contains('open')) {
       status.textContent = 'Disconnected, reconnecting in 3s…';
       setTimeout(() => {
-        if (modal.classList.contains('open')) {
-          openLogModal(deploymentName, podName, containerName);
-        }
+        if (modal.classList.contains('open')) restartLogStream();
       }, 3000);
     }
   };
+}
+
+// Back-compat wrapper: showJobLogs() (and any other direct caller) streams a
+// fixed pod/container with no selector bar. Clear logPods + hide the selectors
+// so a stale deployment's selector list doesn't leak into a job-log view.
+function openLogModal(deploymentName, podName, containerName) {
+  logDeploymentName = deploymentName;
+  logPod = podName;
+  logContainer = containerName;
+  logPods = [];
+  const bar = document.getElementById('logSelectors');
+  if (bar) bar.hidden = true;
+  openLogModalFor(deploymentName, podName, containerName);
 }
 
 function closeLogModal() {
@@ -668,7 +940,7 @@ function renderJobs() {
 async function showJobLogs(jobName) {
   const j = jobs.find(x => x.name === jobName);
   if (!j) return;
-  if (!j.pod) { alert(`No pod found for job ${jobName} yet.`); return; }
+  if (!j.pod) { showToast(`No pod found for job ${jobName} yet.`, { variant: 'info' }); return; }
   openLogModal(`job:${jobName}`, j.pod, j.container);
 }
 
@@ -787,7 +1059,7 @@ async function saveSSHKey() {
   try {
     await api('api/user-settings', { method: 'PUT', body: JSON.stringify({'ssh-public-key': key}) });
     closeSettingsModal('sshKeyModal');
-  } catch (err) { alert('Failed to save: ' + err.message); }
+  } catch (err) { showToast('Failed to save: ' + err.message, { variant: 'error' }); }
 }
 
 async function openTokensModal() {
@@ -815,7 +1087,7 @@ async function saveTokens() {
   try {
     await api('api/tokens', { method: 'PUT', body: JSON.stringify(tokens) });
     closeSettingsModal('tokensModal');
-  } catch (err) { alert('Failed to save: ' + err.message); }
+  } catch (err) { showToast('Failed to save: ' + err.message, { variant: 'error' }); }
 }
 
 // Apply the safe default (dark, basic) now that all top-level `let` declarations

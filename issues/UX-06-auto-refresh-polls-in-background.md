@@ -17,3 +17,11 @@ Low. Efficiency/hygiene, not correctness or a user-visible defect while the tab 
 
 ## Justification for the effort level
 Low. Pause the interval on `document.visibilitychange` hidden, resume + immediate refresh on visible. A few lines.
+
+## Review — 2026-10-27 (UX re-check)
+
+**Status: 🔴 STILL PRESENT** (re-verified 2026-10-27)
+
+Evidence in `web/index.html`:
+
+`setInterval(refreshAll, 10000)` at the end of the script; no `document.visibilitychange` handler to pause when the tab is hidden.

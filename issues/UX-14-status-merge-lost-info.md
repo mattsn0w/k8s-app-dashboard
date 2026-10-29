@@ -17,3 +17,11 @@ Medium. Real diagnostic information is less visible for exactly the cases (unhea
 
 ## Justification for the effort level
 Medium. Add a hover tooltip / popover listing each container's state (or a small per-container dot row) without un-merging the column. Balancing density and clarity is the work.
+
+## Review — 2026-10-27 (UX re-check)
+
+**Status: 🔴 STILL PRESENT** (re-verified 2026-10-27)
+
+Evidence in `web/index.html`:
+
+The Status column is a single merged badge (`${d.ready} containers running` or `0 containers running`); no per-container tooltip/popover/dot row to show which container is unhealthy.

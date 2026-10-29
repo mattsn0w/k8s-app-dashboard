@@ -17,3 +17,11 @@ Medium. It guards against data/workload loss, but the backend already deletes cl
 
 ## Justification for the effort level
 Low. Enhance the (new) confirm modal to show a summary of affected resources and use danger styling; optional type-to-confirm. Small.
+
+## Review — 2026-10-27 (UX re-check)
+
+**Status: 🔴 STILL PRESENT** (re-verified 2026-10-27)
+
+Evidence in `web/index.html`:
+
+Delete uses a generic native `confirm("…This cannot be undone.")` with no preview of affected resources (replicas/pods) and no typed confirmation.

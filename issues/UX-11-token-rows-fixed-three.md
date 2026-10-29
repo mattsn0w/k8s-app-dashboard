@@ -17,3 +17,11 @@ Low. Usability of a secondary feature. The data model (key/value map) is fine; o
 
 ## Justification for the effort level
 Low. Make rows dynamic (add/remove buttons, iterate the map) and validate key format. A modest amount of DOM logic.
+
+## Review — 2026-10-27 (UX re-check)
+
+**Status: 🔴 STILL PRESENT** (re-verified 2026-10-27)
+
+Evidence in `web/index.html`:
+
+The tokens modal still renders exactly 3 hardcoded rows (`tokenKey0/1/2`); no add/remove, no key validation.

@@ -17,3 +17,11 @@ Low. Perceptual. The specific-button fix (UX-02) removes most of the need.
 
 ## Justification for the effort level
 Low. Reuse the in-flight flag from UX-02 to toggle a `wait` cursor or a thin top progress bar. Trivial.
+
+## Review — 2026-10-27 (UX re-check)
+
+**Status: 🔴 STILL PRESENT** (re-verified 2026-10-27)
+
+Evidence in `web/index.html`:
+
+No `cursor:wait` / progress bar / global busy affordance anywhere; relies entirely on the (absent) per-button state from UX-02.

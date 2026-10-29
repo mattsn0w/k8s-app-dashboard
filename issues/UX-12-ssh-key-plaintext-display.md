@@ -17,3 +17,11 @@ Low. Public key material; no real exposure. The issue is ergonomics and labeling
 
 ## Justification for the effort level
 Low. Add a "Copy" button and a "public key" label/hint; optionally mask the body until a "reveal" toggle. A few lines.
+
+## Review — 2026-10-27 (UX re-check)
+
+**Status: 🔴 STILL PRESENT** (re-verified 2026-10-27)
+
+Evidence in `web/index.html`:
+
+`openSSHKeyModal` sets `sshKeyInput.value = data['ssh-public-key']` (plaintext). Title already says 'SSH Public Key' (labeling partly addressed) but there is no copy button for the stored key and no reveal/mask.

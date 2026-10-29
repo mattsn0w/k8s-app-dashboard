@@ -60,9 +60,14 @@ spec:
     - openid
     - email
     - profile
-    # Let non-browser clients (curl, kubectl port-forward, service-to-service)
-    # present `Authorization: Bearer <token>` and skip the redirect flow.
-    passThroughAuthHeader: true
+    # ⚠️ BUG (CLUSTER-01): Envoy Gateway v1.6.3 panics (nil-pointer in
+    # buildHeaderMatchers, oidc.go) when OIDC `passThroughAuthHeader` is set,
+    # crash-looping the xDS runner and breaking the whole gateway. So it is
+    # intentionally OMITTED here. Trade-off: non-browser clients (curl,
+    # kubectl port-forward) cannot present `Authorization: Bearer <token>` to
+    # bypass the redirect flow. Proper fix: upgrade the Envoy Gateway to a
+    # version with the nil guard (≥ v1.8.x; v1.9.x confirmed to have it), then
+    # re-add `passThroughAuthHeader: true`.
     # Auto-refresh the id/access tokens when they expire.
     refreshToken: true
     # Clear credential cookies at /logout.

@@ -24,15 +24,47 @@ NS="apps"
 DEPLOY="deploy-dashboard"
 
 echo "=== 1. Build image: $IMAGE ==="
-docker build -t "$IMAGE" .
+# --no-cache: buildkit can serve a stale `COPY --from=builder` runtime layer
+# even when the builder stage re-runs, which makes the runtime binary embed an
+# OLD web/index.html. Building from scratch is cheap (~10s) and makes the
+# //go:embed deterministic. (The Dockerfile also clears the Go build cache and
+# fails the build if the binary lacks a marker from the current UI.)
+docker build --no-cache -t "$IMAGE" .
+
+# Post-build smoke check: prove the image's binary actually embeds the CURRENT
+# web/index.html. //go:embed can silently serve a stale UI if the Go build
+# cache is warm (the Dockerfile already guards this at build time, but we
+# re-check the pushed image as a second line of defense). We run the image with
+# busybox `grep` (alpine has no `strings`, but grep can search the binary's raw
+# bytes) and look for a plain identifier (no quotes -- quotes break binary grep)
+# that must exist in the current source; if missing, abort before deploying.
+MARKER=$(grep -oE 'function showToast|confirmAction|toastContainer' web/index.html | head -1)
+if [ -n "$MARKER" ]; then
+  echo "=== 1b. Smoke-check that the image binary embeds the current UI (marker: $MARKER) ==="
+  # `--entrypoint sh` overrides the binary entrypoint. `grep -ac` treats the
+  # binary as text and prints a count; a non-zero count means the marker is present.
+  COUNT=$(docker run --rm --entrypoint sh "$IMAGE" -c "grep -ac \"$MARKER\" /usr/local/bin/deploy-dashboard" 2>/dev/null | tail -1)
+  if [ "${COUNT:-0}" -gt 0 ] 2>/dev/null; then
+    echo "  OK: image binary embeds the current UI (marker found $COUNT time(s))."
+  else
+    echo "  ERROR: image binary does NOT embed the current UI (stale //go:embed)."
+    echo "  The binary was built from an old web/index.html. Rebuild with --no-cache."
+    exit 1
+  fi
+fi
 
 echo ""
 echo "=== 2. Push image ==="
 docker push "$IMAGE"
 
 echo ""
-echo "=== 3. Apply manifests (Deployment rolls to the new image) ==="
+echo "=== 3. Apply manifests + force a re-pull (mutable :latest tag) ==="
+# `kubectl apply` alone does NOT roll a Deployment whose image tag is unchanged
+# (e.g. :latest) -- the spec string is identical, so no new ReplicaSet is made.
+# `rollout restart` bumps the pod-template annotation, forcing a fresh pull of
+# the just-pushed :latest image.
 kubectl apply -f manifests/03-deployment.yaml
+kubectl -n "$NS" rollout restart "deployment/$DEPLOY"
 
 echo ""
 echo "=== 4. Wait for rollout ==="
