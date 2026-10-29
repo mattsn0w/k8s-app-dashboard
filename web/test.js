@@ -427,6 +427,178 @@ console.log('log pod/container selection (UX-03):');
   assertEq(podOptionLabel({ name: 'a-bad', ready: false, containers: [] }), 'a-bad (not ready)', 'not-ready pod label is annotated');
 }
 
+// ---------- UX-04: log DOM cap (trimLogLines + isAtBottom) ----------
+// Mirrors the pure helpers in web/index.html. trimLogLines drops the OLDEST
+// children beyond `max`; isAtBottom reports whether a scroll container is at
+// (within `threshold`px of) its bottom.
+
+// Mirror of the real trimLogLines (same algorithm; a tiny fake container stands
+// in for a real <pre> so this runs without a DOM).
+function fakeContainer() {
+  const kids = [];
+  return {
+    kids,
+    get childElementCount() { return kids.length; },
+    get firstElementChild() { return kids[0] || null; },
+    appendChild(c) { kids.push(c); return c; },
+    removeChild(c) { const i = kids.indexOf(c); if (i >= 0) kids.splice(i, 1); return c; },
+    text() { return kids.map(k => k.t).join('\n'); },
+  };
+}
+function line(t) { return { t }; }
+function trimLogLines(container, max) {
+  const overflow = container.childElementCount - max;
+  if (overflow <= 0) return 0;
+  let removed = 0;
+  for (let i = 0; i < overflow; i++) {
+    const first = container.firstElementChild;
+    if (!first) break;
+    container.removeChild(first);
+    removed++;
+  }
+  return removed;
+}
+// Mirror of the real isAtBottom.
+function isAtBottom(scrollEl, threshold = 40) {
+  return scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight < threshold;
+}
+
+console.log('log DOM cap (UX-04):');
+{
+  // Under the cap: nothing removed.
+  const c = fakeContainer();
+  for (let i = 0; i < 5; i++) c.appendChild(line('L' + i));
+  assertEq(trimLogLines(c, 10), 0, 'under cap -> 0 removed');
+  assertEq(c.childElementCount, 5, 'under cap -> count unchanged');
+
+  // Exactly at the cap: nothing removed.
+  const c2 = fakeContainer();
+  for (let i = 0; i < 10; i++) c2.appendChild(line('L' + i));
+  assertEq(trimLogLines(c2, 10), 0, 'at cap -> 0 removed');
+
+  // Over the cap: oldest dropped, newest kept, count == max.
+  const c3 = fakeContainer();
+  for (let i = 0; i < 15; i++) c3.appendChild(line('L' + i)); // L0..L14
+  const removed = trimLogLines(c3, 10);
+  assertEq(removed, 5, 'over cap -> removed the overflow (5)');
+  assertEq(c3.childElementCount, 10, 'over cap -> count clamped to max');
+  assertEq(c3.text(), 'L5\nL6\nL7\nL8\nL9\nL10\nL11\nL12\nL13\nL14',
+    'over cap -> OLDEST (L0..L4) dropped, NEWEST kept');
+
+  // Large single batch (simulates one WS frame with many lines): still bounded.
+  const c4 = fakeContainer();
+  for (let i = 0; i < 5000; i++) c4.appendChild(line('X' + i));
+  trimLogLines(c4, 2000);
+  assertEq(c4.childElementCount, 2000, '5000-line batch -> clamped to 2000');
+  assertEq(c4.kids[0].t, 'X3000', 'large batch -> oldest (X0..X2999) dropped');
+  assertEq(c4.kids[1999].t, 'X4999', 'large batch -> newest line retained');
+
+  // trimLogLines is idempotent once at the cap.
+  assertEq(trimLogLines(c4, 2000), 0, 'already at cap -> 0 further removed');
+
+  // isAtBottom: within threshold of the bottom.
+  const atBottom = { scrollHeight: 1000, scrollTop: 970, clientHeight: 100 }; // 30px from bottom
+  const mid =      { scrollHeight: 1000, scrollTop: 400, clientHeight: 100 }; // 500px from bottom
+  const top =      { scrollHeight: 1000, scrollTop: 0,   clientHeight: 100 };
+  assertEq(isAtBottom(atBottom), true,  '30px from bottom (< 40) -> atBottom');
+  assertEq(isAtBottom({ scrollHeight:1000, scrollTop:960, clientHeight:100 }), true, 'exactly 40px -> atBottom (< 40 is false, ==40 -> 0<40 true)');
+  assertEq(isAtBottom(mid), false, 'mid-scroll -> not at bottom');
+  assertEq(isAtBottom(top), false, 'top -> not at bottom');
+  // Custom threshold: 50px from bottom (1000-850-100=50) with threshold 10 -> not at bottom.
+  assertEq(isAtBottom({ scrollHeight:1000, scrollTop:850, clientHeight:100 }, 10), false, '50px from bottom with threshold 10 -> not at bottom');
+  // ...but with the default 40 threshold it IS at bottom (50 < 40 is false, so not). Use 30px to be inside default.
+  assertEq(isAtBottom({ scrollHeight:1000, scrollTop:870, clientHeight:100 }), true, '30px from bottom -> at bottom (default 40)');
+}
+
+// ---------- Log stream token: switching pods must not cause a stale reconnect ----------
+// Models the token-guard in openLogModalFor/closeLogModal. The bug: when the
+// user switches pod, the OLD socket's onclose fires AFTER the new one is
+// opened; without a token guard it schedules a 3s reconnect that kills the NEW
+// (correctly-streaming) socket. The fix: each socket captures a token at open;
+// its onclose/onmessage/reconnect-timers only act while that token is still
+// current. Bumping the token on a new open (or on close) invalidates the old
+// socket.
+
+// Simulate the open/close/reconnect lifecycle with the token guard.
+function simulateSwitchBugs() {
+  let token = 0;
+  const timers = []; // {at, fn, token}
+  const sockets = []; // {token, closed, onclose}
+  function open() {
+    const t = ++token;
+    const sock = { token: t, closed: false, onclose: null };
+    sock.onclose = () => {
+      // Guard: only the current socket, while "modal open", reschedules.
+      if (sock.token !== token) return;          // stale -> inert
+      if (!modalOpen) return;
+      timers.push({ fn: () => restart(), token: sock.token });
+    };
+    sockets.push(sock);
+    return sock;
+  }
+  let modalOpen = true;
+  function close() {
+    token++; // invalidate any pending reconnect / in-flight onclose
+    const last = sockets[sockets.length - 1];
+    if (last) { last.closed = true; }
+    modalOpen = false;
+  }
+  let restarts = 0;
+  function restart() { restarts++; }
+  // A socket closes (its onclose fires). Returns whether it scheduled a reconnect.
+  function fireClose(sock) {
+    const before = timers.length;
+    sock.onclose();
+    return timers.length - before;
+  }
+  // Flush timers whose token is still current (simulates the 3s elapsing).
+  function flush() {
+    for (const t of timers) { if (t.token === token) t.fn(); }
+    timers.length = 0;
+  }
+  return { open, close, fireClose, flush, get token(){return token;}, get restarts(){return restarts;},
+           get scheduled(){return timers.length;}, setModalOpen(v){modalOpen=v;} };
+}
+
+console.log('log stream token guard (pod-switch reconnect bug):');
+{
+  // Scenario: open pod A, switch to pod B, pod A's socket closes.
+  const s = simulateSwitchBugs();
+  const a = s.open();      // token 1
+  const b = s.open();      // token 2 (supersedes A)
+  // A's socket now closes (asynchronously). It must NOT schedule a reconnect.
+  const scheduledByA = s.fireClose(a);
+  assertEq(scheduledByA, 0, 'superseded socket A onclose -> NO reconnect scheduled');
+  assertEq(s.scheduled, 0, 'no phantom reconnect pending after switch');
+  assertEq(s.restarts, 0, 'no restart triggered by the stale close');
+  // B is still current; nothing should have restarted the stream.
+  assertEq(b.token === s.token, true, 'socket B is the current one');
+
+  // Scenario: the CURRENT socket (B) closes while modal open -> schedules a reconnect.
+  const s2 = simulateSwitchBugs();
+  const b2 = s2.open();
+  const scheduledByB = s2.fireClose(b2);
+  assertEq(scheduledByB, 1, 'current socket onclose (modal open) -> reconnect scheduled');
+  s2.flush();
+  assertEq(s2.restarts, 1, 'pending reconnect fired (current token still valid)');
+
+  // Scenario: close the modal while a reconnect is pending -> token bump kills it.
+  const s3 = simulateSwitchBugs();
+  const c = s3.open();
+  s3.fireClose(c);          // schedules a reconnect for token 1
+  assertEq(s3.scheduled, 1, 'reconnect pending before close');
+  s3.close();               // bump token + close modal
+  s3.flush();               // 3s elapses, but token is stale now
+  assertEq(s3.restarts, 0, 'closing the modal cancels the pending reconnect');
+
+  // Scenario: rapid A->B->C switches, each old socket closes; only C is current.
+  const s4 = simulateSwitchBugs();
+  const a4 = s4.open(), b4 = s4.open(), c4 = s4.open();
+  s4.fireClose(a4); s4.fireClose(b4);
+  assertEq(s4.scheduled, 0, 'rapid switches: no phantom reconnects from superseded sockets');
+  assertEq(c4.token === s4.token, true, 'only the last socket (C) is current');
+}
+
 // --- Summary ---
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);

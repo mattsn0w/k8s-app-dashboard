@@ -55,6 +55,7 @@ Each issue is a single markdown file in this directory, capturing **type**, **su
 | APP-12 | Manifests lack resource limits, probes, controller | Medium | Low |
 | APP-13 | Missing .gitignore / module hygiene | Low | Low |
 | APP-14 | N+1 K8s API calls per list (no caching) | Low | Medium |
+| APP-19 | Switching pods in the log modal disconnects the stream (regression from UX-03) | High | Low | ✅ FIXED + deployed + browser-verified (stream-generation token; 10 regression tests) |
 
 ### UX
 > **Re-checked 2026-10-27:** all 18 UX issues were re-verified against the current `web/index.html`. **None have been fixed since the review — every one is still present.** Per-issue evidence is appended to each `issues/UX-*.md` under "Review — 2026-10-27".
@@ -64,7 +65,7 @@ Each issue is a single markdown file in this directory, capturing **type**, **su
 | UX-01 | alert()/confirm() for all feedback/confirmations | High | Medium | ✅ FIXED (toast + in-app confirm modal; 9 call sites swapped; 18 new tests) |
 | UX-02 | No loading/disabled state on action buttons | Medium | Low | ✅ FIXED (busy-state + spinner; double-click guard; 11 unit + 12 functional tests) |
 | UX-03 | Log modal silently picks first pod/container | High | Medium | ✅ FIXED + deployed + browser-verified on echo-server (2026-10-28) |
-| UX-04 | Log view keeps every line in the DOM | Medium | Low | 🔴 still present (appendChild per line, no cap) |
+| UX-04 | Log view keeps every line in the DOM | Medium | Low | ✅ FIXED + deployed + browser-verified (cap 2000, 2026-10-29) |
 | UX-05 | No copy or download of the log view | Medium | Low | 🔴 still present (log modal footer has no Copy/Download) |
 | UX-06 | 10 s poll continues when tab is hidden | Low | Low | 🔴 still present (setInterval, no visibilitychange gate) |
 | UX-07 | Failed load renders error as a table row | Low | Low | 🔴 still present (catch injects a pseudo-row) |

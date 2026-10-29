@@ -501,6 +501,42 @@ let logPods = [];        // [{name, ready, containers:[string]}] for the open de
 let logPod = '';         // currently-streamed pod name
 let logContainer = '';   // currently-streamed container name
 let logDeploymentName = ''; // the deployment the log modal is showing (for reconnect)
+// Incremented every time a fresh stream socket is opened. Each socket's
+// onclose/onmessage/end-reconnect handlers only act while their token is still
+// the current one, so a socket that was superseded (e.g. the user switched
+// pod/container) cannot fire a stale "reconnect" timer that would kill the
+// new, correctly-streaming socket.
+let logStreamToken = 0;
+
+// UX-04: keep the log view bounded. #logContent retains at most this many
+// <div> lines; older ones are dropped from the top. Far more than a viewport
+// shows, but keeps a long-running tail from growing the DOM unboundedly.
+const LOG_MAX_LINES = 2000;
+
+// UX-04: drop the OLDEST lines in `container` so it holds at most `max`
+// children. Returns the number removed. Pure over the DOM subtree (no layout
+// reads) so it is unit-testable. Only touches the first `overflow` children,
+// so it is O(overflow) and bounded by the per-message batch size.
+function trimLogLines(container, max) {
+  const overflow = container.childElementCount - max;
+  if (overflow <= 0) return 0;
+  let removed = 0;
+  for (let i = 0; i < overflow; i++) {
+    const first = container.firstElementChild;
+    if (!first) break;
+    container.removeChild(first);
+    removed++;
+  }
+  return removed;
+}
+
+// UX-04: is the scroll container within `threshold`px of its bottom edge?
+// Used to decide whether to keep auto-scrolling to the tail: we only pin the
+// user to the bottom if they were already following it (not if they scrolled
+// up to read history).
+function isAtBottom(scrollEl, threshold = 40) {
+  return scrollEl.scrollHeight - scrollEl.scrollTop - scrollEl.clientHeight < threshold;
+}
 
 // UX-02: in-flight (busy) tracking for mutation actions. A Set of deployment
 // names whose scale/terminate/delete request is in flight. Prevents double
@@ -779,6 +815,12 @@ async function showLogs(deploymentName) {
 // Open the log modal and stream the given pod/container. Reuses the existing
 // teardown (close WS, abort any HTTP fetch) and the subPath-aware WS URL.
 function openLogModalFor(deploymentName, podName, containerName) {
+  // Opening a new socket supersedes any previous one. Bump the token so the
+  // old socket's onclose/onmessage handlers (which fire asynchronously after
+  // .close()) see a stale token and do NOT schedule a phantom reconnect that
+  // would kill this fresh socket (e.g. when the user toggles pods).
+  const token = ++logStreamToken;
+  const isCurrent = () => token === logStreamToken;
   if (logWS) { logWS.close(); logWS = null; }
   if (logAbortController) { logAbortController.abort(); logAbortController = null; }
   const modal = document.getElementById('logModal');
@@ -797,6 +839,7 @@ function openLogModalFor(deploymentName, podName, containerName) {
   logWS = new WebSocket(wsURL);
 
   logWS.onopen = () => {
+    if (!isCurrent()) return; // superseded before it opened
     status.textContent = 'Streaming…';
     logWS.send(JSON.stringify({ action: 'follow', pod: podName, container: containerName }));
   };
@@ -807,39 +850,53 @@ function openLogModalFor(deploymentName, podName, containerName) {
       try {
         const msg = JSON.parse(data);
         if (msg.start) {
-          status.textContent = `Streaming ${msg.pod}…`;
+          if (isCurrent()) status.textContent = `Streaming ${msg.pod}…`;
         } else if (msg.end) {
+          // Only the CURRENT socket may schedule a reconnect; a superseded
+          // socket must not fire a stale timer (would kill the new stream).
+          if (!isCurrent()) return;
           status.textContent = msg.error ? `Stream ended: ${msg.error}, reconnecting in 3s…` : 'Stream ended, reconnecting in 3s…';
           if (!modal.classList.contains('open')) return;
           // Reconnect to the CURRENT selection (not a stale closure value).
           setTimeout(() => {
-            if (modal.classList.contains('open')) restartLogStream();
+            if (isCurrent() && modal.classList.contains('open')) restartLogStream();
           }, 3000);
         } else if (msg.error) {
-          status.textContent = `Error: ${msg.error}`;
+          if (isCurrent()) status.textContent = `Error: ${msg.error}`;
         }
       } catch {}
       return;
     }
     // Log lines
+    if (!isCurrent()) return; // ignore data from a superseded socket
     const lines = data.split('\n').filter(l => l.length > 0);
+    const body = document.querySelector('.modal-body');
+    // UX-04: remember whether the user is following the tail BEFORE appending,
+    // so we only auto-scroll when they already were (don't yank them down if
+    // they've scrolled up to read history).
+    const wasAtBottom = isAtBottom(body);
     for (const line of lines) {
       const div = document.createElement('div');
       div.className = 'log-line';
       div.textContent = line;
       contentEl.appendChild(div);
     }
-    const body = document.querySelector('.modal-body');
-    body.scrollTop = body.scrollHeight;
+    // UX-04: cap the DOM — drop the oldest lines beyond LOG_MAX_LINES.
+    trimLogLines(contentEl, LOG_MAX_LINES);
+    if (wasAtBottom) body.scrollTop = body.scrollHeight;
   };
   logWS.onerror = () => {
-    status.textContent = 'WebSocket error, retrying in 3s…';
+    if (isCurrent()) status.textContent = 'WebSocket error, retrying in 3s…';
   };
   logWS.onclose = () => {
+    // The decisive guard: a socket that was superseded (pod/container switch,
+    // or the modal was closed) must NOT schedule a reconnect. Only the
+    // current socket, while the modal is open, triggers the 3s retry.
+    if (!isCurrent()) return;
     if (modal.classList.contains('open')) {
       status.textContent = 'Disconnected, reconnecting in 3s…';
       setTimeout(() => {
-        if (modal.classList.contains('open')) restartLogStream();
+        if (isCurrent() && modal.classList.contains('open')) restartLogStream();
       }, 3000);
     }
   };
@@ -859,6 +916,10 @@ function openLogModal(deploymentName, podName, containerName) {
 }
 
 function closeLogModal() {
+  // Bump the token so the closing socket's onclose/onmessage (which fire
+  // asynchronously) and any already-pending reconnect timer see a stale token
+  // and stay inert. Belt-and-suspenders alongside the modal-open check.
+  logStreamToken++;
   if (logWS) {
     logWS.send(JSON.stringify({ action: 'stop' }));
     logWS.close();

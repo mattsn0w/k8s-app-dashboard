@@ -110,6 +110,28 @@ kubectl apply -f manifests/04-demo-workloads.yaml
 
 The binary (with the UI embedded via Go `//go:embed`) is **baked into the image** at build time (multi-stage `Dockerfile`: static Go build → tiny alpine runtime). The Deployment just runs the image — no binary injection, no `emptyDir`, no `initContainer` — so a recreated pod is self-sufficient. `build-and-deploy.sh` builds, pushes, and rolls out in one step.
 
+### No local docker daemon? Build in-cluster with buildah
+
+If your environment denies the local `docker` daemon (e.g. a sandbox where
+`/var/run/docker.sock` is not accessible), use `build-and-deploy-buildah.sh`.
+It builds the image with a **Job in the cluster** that runs buildah
+(`quay.io/buildah/stable`), pushes to the registry, and rolls out — no local
+docker needed.
+
+```sh
+./build-and-deploy-buildah.sh
+#   -> stages the source in a ConfigMap
+#   -> runs a privileged Job: buildah bud + buildah push (STORAGE_DRIVER=vfs)
+#   -> kubectl rollout restart + rollout status
+#   -> prints the access URL (derived from the gateway LoadBalancer Service)
+```
+
+The buildah Job needs `securityContext.privileged: true` (the `vfs` storage
+driver's layer unpack does a `remount` that requires `CAP_SYS_ADMIN`) and
+`STORAGE_DRIVER=vfs` (the default `overlay` driver is "not supported over
+overlayfs"). See the script header for the full rationale, including why the
+image ref is `quay.io/buildah/stable` rather than the other buildah tags.
+
 ### Locally
 
 ```bash
