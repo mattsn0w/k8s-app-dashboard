@@ -37,11 +37,22 @@ metadata:
   labels:
     app.kubernetes.io/name: deploy-dashboard
 spec:
-  targetRef:
-    group: gateway.networking.k8s.io
+  # targetRefs (plural) replaces the deprecated singular targetRef, which is
+  # removed in Envoy Gateway v1.11. Migrated during the v1.6.3 -> v1.10.0
+  # upgrade. NO sectionName => the policy attaches to the ENTIRE Gateway, i.e.
+  # BOTH the http (80) and https (443) listeners. Previously it was pinned to
+  # `sectionName: http`, which left HTTPS (443) UNAUTHENTICATED -- a real
+  # SEC-01 hole (anon users could hit https://apps01.../app/ directly and get
+  # 200 with no login). Attaching to the whole Gateway closes that. Confirmed
+  # after migration: oauth2 filter present on 5/5 routes for both listeners;
+  # unauthenticated https /app/ and /app/api/* now 302 -> dex. Trade-off: the
+  # '/' graceful status page (direct-response) is now also auth-gated (302),
+  # which is fine -- it only showed a "starting up" hint and shouldn't leak
+  # backend state to anonymous users anyway.
+  targetRefs:
+  - group: gateway.networking.k8s.io
     kind: Gateway
     name: eg
-    sectionName: http
   oidc:
     provider:
       # dex OpenID provider. Endpoints (authorization, token, end-session)
@@ -60,14 +71,18 @@ spec:
     - openid
     - email
     - profile
-    # ⚠️ BUG (CLUSTER-01): Envoy Gateway v1.6.3 panics (nil-pointer in
-    # buildHeaderMatchers, oidc.go) when OIDC `passThroughAuthHeader` is set,
-    # crash-looping the xDS runner and breaking the whole gateway. So it is
-    # intentionally OMITTED here. Trade-off: non-browser clients (curl,
-    # kubectl port-forward) cannot present `Authorization: Bearer <token>` to
-    # bypass the redirect flow. Proper fix: upgrade the Envoy Gateway to a
-    # version with the nil guard (≥ v1.8.x; v1.9.x confirmed to have it), then
-    # re-add `passThroughAuthHeader: true`.
+    # ⚠️ STILL BUGGY in v1.10.0 (CLUSTER-01 NOT fixed upstream): setting
+    # `passThroughAuthHeader: true` reproduces the identical nil-pointer panic
+    # at xds/translator/oidc.go:395 buildHeaderMatchers(0x0) on v1.10.0 (tested
+    # 2026-11-11). handleWithCrashRecovery catches it, so the process survives
+    # and last-good routes keep serving -- but the OIDC translation is dropped,
+    # so the setting never takes effect AND it panics the xDS runner on every
+    # reconcile. So it stays OMITTED. Trade-off unchanged: non-browser clients
+    # cannot bypass the redirect flow with `Authorization: Bearer <token>`.
+    # Do NOT re-enable without first confirming buildHeaderMatchers is nil-safe
+    # in the running EG image. Track upstream; revisit on a newer release.
+    # (Re-enabled + reverted during the v1.6.3 -> v1.10.0 upgrade; see
+    #  issues/CLUSTER-01-envoy-503.md.)
     # Auto-refresh the id/access tokens when they expire.
     refreshToken: true
     # Clear credential cookies at /logout.

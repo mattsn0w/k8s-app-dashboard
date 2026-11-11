@@ -1,6 +1,12 @@
 # Serves the graceful "starting up" page when the SPA backend is unavailable
 # (503/50x). The body must stay under 4096 bytes so Envoy can serve it directly
 # via the direct-response filter.
+#
+# CRITICAL: The body MUST contain NO '%' (and no '$') characters. Envoy >=1.40
+# runs direct-response bodies through its substitution formatter, which parses
+# '%...%' as log-format commands; any stray '%' (e.g. CSS `height:100%`) makes
+# Envoy NACK the ENTIRE RouteConfiguration -> ALL routes 404. Use vh/vw/px instead
+# of %. Guard: `grep -c '%' <thisfile>` must be 0. See docs/envoy-gateway-upgrade-plan.md §9.
 apiVersion: v1
 kind: ConfigMap
 metadata:
@@ -19,12 +25,12 @@ data:
     <style>
     :root{--bg:#11111b;--fg:#cdd6f4;--muted:#a6adc8;--accent:#89b4fa;--border:#313244}
     *{box-sizing:border-box;margin:0;padding:0}
-    html,body{height:100%}
+    html,body{height:100vh}
     body{display:flex;align-items:center;justify-content:center;background:var(--bg);color:var(--fg);font:14px/1.5 -apple-system,"Segoe UI",Helvetica,Arial,sans-serif}
     .card{display:none;flex-direction:column;align-items:center;gap:14px;padding:28px 34px;border:1px solid var(--border);border-radius:12px;min-width:260px;text-align:center}
     body.loading .card{display:flex}
     .spinner{position:relative;width:30px;height:30px}
-    .ring{position:absolute;inset:0;border:3px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin 1.6s linear infinite}
+    .ring{position:absolute;inset:0;border:3px solid var(--border);border-top-color:var(--accent);border-radius:9999px;animation:spin 1.6s linear infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
     h1{font-size:15px;font-weight:600}
     p{font-size:13px;color:var(--muted)}

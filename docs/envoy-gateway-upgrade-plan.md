@@ -197,3 +197,57 @@ curl -sk -o /dev/null -w "%{http_code}\n" https://apps01.co.slakin.net/app/
 
 ## 8. Recommended execution order (one-liner)
 1. §4 baseline snapshot -> 2. §2 tag verification -> 3. §3 Step A (CRDs) -> 4. §6 CRD/ReferenceGrant check -> 5. §3 Step B if needed -> 6. §3 Step C/D (controller) -> 7. §3 Step E (data plane) -> 8. §5/§6 verify -> 9. optional `passThroughAuthHeader` restore + CLUSTER-01 closeout.
+
+---
+
+## 9. Execution outcome (v1.6.3 → v1.10.0) — COMPLETED 2026-11-11
+
+Executed successfully. Final state: controller `envoyproxy/gateway:v1.10.0` (helm rev 2, `deployed`); data plane `envoy:distroless-v1.40.2`; Gateway `eg` `PROGRAMMED=True` @ `172.16.1.90`; no mixed-version proxies.
+
+**Order used (worked):** baseline → CRDs (`gateway-crds-helm:1.10.0`, experimental, server-side apply, 21 CRDs + safe-upgrades VAP) → **gate** (bundle `v1.6.1` confirmed; ReferenceGrant serves both `v1`+`v1beta1`, so **Step B skipped**) → `helm upgrade eg gateway-helm:1.10.0 --atomic` → control plane clean (0 panics) → data plane auto-rolled to v1.40.2.
+
+### Regression hit & fixed: direct-response status page broke ALL routing (404)
+**Symptom:** after the data plane rolled to Envoy v1.40.2, every request 404'd (`route_not_found`, `NR`); Envoy admin showed **RDS `update_rejected:1 / update_success:0`** for `apps/eg/http` **and** `/https` (CDS/LDS/EDS/SDS all fine).
+
+**Root cause:** the graceful 503 "starting up" page (`HTTPRouteFilter/devpod-status-page` → ConfigMap `devpod-status-page`) contained CSS **`%`** tokens — `height:100%` (byte 331) and `border-radius:50%` (byte 864). Envoy runs `direct_response` inline bodies through its **substitution formatter**, which parses `%…%` as log-format **commands**: `Couldn't find valid command at position 331`. v1.36 tolerated this; **v1.40.2 NACKs the whole RouteConfiguration**, so *zero* routes load → total 404.
+
+**Fix:** remove every `%` from the status-page body. `height:100%`→`height:100vh`, `border-radius:50%`→`border-radius:9999px` (visually identical circle). Applied in `manifests/status-page.html`, `manifests/06-status-page.yaml`, and live ConfigMap. RDS then `update_success` incremented and 0 new rejects.
+
+**Permanent rule:** **any `direct_response` body must be `%`-free** (no `%`, no `$`) or Envoy ≥1.40 rejects the entire route set. Guard: `grep -c '%' manifests/06-status-page.yaml` must be `0`.
+
+### Verified post-upgrade (all green)
+- `/app/` 200, `/app/healthz` 200, `/` **503** (full 3388-byte status page served), `/apps/echo/`+`/apps/terminal/` 200, `/apps/vscode/` 302 (code-server).
+- **OIDC**: `http://`→302 to dex with valid PKCE (login flow intact; expected one-time re-login due to AES-GCM cookie change).
+- **WebSocket logs** (`/api/logs-ws`): **101 Switching Protocols** with valid accept — Hijack/WS path intact through the proxy upgrade.
+- No mixed-version proxies (chunking fallback not needed).
+
+### Still optional (not required for health)
+- SecurityPolicy emits a harmless **deprecation warning**: `spec.targetRef` → use `spec.targetRefs` (removed in v1.11). Migrate `manifests/05-security-policy.yaml` before the *next* major.
+- ~~Restore `passThroughAuthHeader`~~ — see §10b: still panics on v1.10.0, reverted. Do NOT re-enable without verifying `buildHeaderMatchers` is nil-safe.
+
+---
+
+## 10. Post-upgrade follow-ups (done 2026-11-11)
+
+### 10a. `targetRef` → `targetRefs` migration — DONE (and it closed a real hole)
+Migrated `05-security-policy.yaml` to the plural `targetRefs` (removes the v1.11
+deprecation warning). While verifying, discovered the policy had
+`sectionName: http`, so **OIDC was attached to the HTTP listener only** — meaning
+**HTTPS (443) was completely unauthenticated**: `https://apps01.co.slakin.net/app/`
+returned 200 to anonymous users (present in every baseline, so pre-existing,
+NOT caused by the upgrade). **Fix:** dropped `sectionName` so the policy targets
+the whole Gateway. Verified: oauth2 filter on 5/5 routes for BOTH listeners;
+unauth https `/app/` and `/app/api/*` now 302 → dex (valid PKCE, v1.10 GCM
+cookies). SEC-01 is now actually enforced on 443. Side effect: the `/`
+"starting up" status page is now auth-gated (302) too — acceptable/desirable.
+
+### 10b. `passThroughAuthHeader` — STILL BROKEN in v1.10.0, reverted
+The plan §1/§9 guessed the OIDC `buildHeaderMatchers` nil-pointer crash (CLUSTER-01)
+was fixed upstream ≥ v1.8.4. **That was WRONG.** Setting `passThroughAuthHeader: true`
+on v1.10.0 reproduces the identical panic: `xds/translator/oidc.go:395
+buildHeaderMatchers(0x0)` → nil pointer. `handleWithCrashRecovery` catches it, so
+the process survives and last-good routes keep serving, but the OIDC translation
+is dropped (setting never applies) and the xDS runner panics on every reconcile.
+**Reverted (left OMITTED).** Manifest comment now records the tested-on version.
+Action item: revisit only when `buildHeaderMatchers` is confirmed nil-safe in the
+running image (check newer release notes / source), not simply by version bump.

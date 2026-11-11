@@ -49,10 +49,13 @@ was stuck at 1/2 → Envoy returned 503 for the routes it couldn't program.
 | OIDC **with only** `passThroughAuthHeader: true` | **1** | 200 (transient) |
 | OIDC with the full original spec (incl. `passThroughAuthHeader`) | 8 (looping) | 503 |
 
-Conclusion: **`passThroughAuthHeader: true` is the exact trigger.** This is an
-Envoy Gateway v1.6.3 bug; later versions (v1.9.x, checked in
-`github.com/gateway/internal/xds/translator/oidc.go`) guard against the nil
-(`if provider.ExtractFrom == nil`), so the upgrade is the permanent fix.
+Conclusion: **`passThroughAuthHeader: true` is the exact trigger.** This was an
+Envoy Gateway v1.6.3 bug. It was originally believed fixed in later versions,
+but that was **DISPROVEN on 2026-11-11**: after upgrading the cluster to
+**v1.10.0**, setting `passThroughAuthHeader: true` reproduces the *identical*
+panic at `xds/translator/oidc.go:395 buildHeaderMatchers(0x0)` → nil pointer.
+So the version bump is **NOT** a fix for this specific field. See §"Update
+2026-11-11" at the bottom for the corrected status.
 
 ## Secondary (pre-existing, unrelated) issue found during investigation
 
@@ -100,5 +103,39 @@ restore Bearer-token pass-through for non-browser clients. Steps:
 2. Roll out the matching data-plane (the `SecurityPolicy`/gateway CRDs are
    versioned; follow the Envoy Gateway upgrade notes for the data plane).
 3. Re-apply `manifests/05-security-policy.yaml` **with** `passThroughAuthHeader: true`.
+
+> ⚠️ **This recommendation was WRONG and is superseded.** The gateway was
+> upgraded to **v1.10.0** on 2026-11-11 and `passThroughAuthHeader` STILL
+> panics there. See the update below — do NOT re-add the field without first
+> verifying `buildHeaderMatchers` is nil-safe in the *running* image.
+
+---
+
+## Update 2026-11-11 (after upgrading to Envoy Gateway v1.10.0)
+
+**The upgrade did NOT fix `passThroughAuthHeader`.** On the now-running
+**v1.10.0** control plane, setting `passThroughAuthHeader: true` reproduces the
+exact same panic:
+
+```
+panic: runtime error: invalid memory address or nil pointer dereference
+  internal/xds/translator.buildHeaderMatchers(0x0)
+    internal/xds/translator/oidc.go:395
+  internal/xds/translator.oauth2Config(...)
+    internal/xds/translator/oidc.go:217
+```
+
+Difference from v1.6.3: in v1.10.0 `message.handleWithCrashRecovery` **catches**
+the panic, so the process does **not** crash-loop and restartCount stays 0 —
+but the OIDC xDS translation is dropped (the setting never takes effect) and
+the xDS runner logs `observed a panic` on every reconcile. Net: the field is
+still unusable; the workaround (omit it) remains in effect.
+
+**Status update:** ✅ still RESOLVED via workaround (field omitted). The
+"permanent fix = upgrade" note above was incorrect and is struck through.
+**Re-open criteria:** only revisit `passThroughAuthHeader` when
+`buildHeaderMatchers` is confirmed nil-safe in the running EG image (read the
+release notes / source for that exact function), not merely on a version bump.
+Tracked in docs/envoy-gateway-upgrade-plan.md §10b.
 4. Verify: 0 panics, `/app/` → 200, and a Bearer-token request bypasses the
    login redirect.
