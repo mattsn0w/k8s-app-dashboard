@@ -25,3 +25,16 @@ Medium. Add a hover tooltip / popover listing each container's state (or a small
 Evidence in `web/index.html`:
 
 The Status column is a single merged badge (`${d.ready} containers running` or `0 containers running`); no per-container tooltip/popover/dot row to show which container is unhealthy.
+
+## Resolution — 2026-11-10 (UX-14)
+
+**Status: ✅ FIXED + deployed + browser-verified**
+
+- The deployment row is now **expandable** (chevron in the Name cell). Expanding fetches
+  `/api/pods?deployment=X` and renders one box per pod listing **each container with a
+  ready/unready dot**, its name, and a restart count — so an unhealthy container in a
+  multi-container pod is obvious instead of being masked by a single merged badge.
+- Backend: `podView` now carries per-container `containerStatuses` (name/ready/restartCount),
+  `phase`, and `podIP` (previously only aggregate readiness).
+- Expanded state is preserved across 10s polls; re-expands reuse a per-row cache.
+- Verified live on echo-server (3 pods, dots + IP rendered). 12 new unit tests.

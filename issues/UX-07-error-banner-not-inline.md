@@ -25,3 +25,15 @@ Low. Move the failure into a banner element above the table with a Retry button;
 Evidence in `web/index.html`:
 
 `fetchDeployments` catch-block still injects a pseudo-row `<tr><td colspan="3" class="empty-state">Failed to load deployments…` into the table body instead of a banner.
+
+## Resolution — 2026-11-10 (UX-07)
+
+**Status: ✅ FIXED + deployed + browser-verified**
+
+- Fetch failures now render as a dismissible **error banner** above the deployments table
+  (`role="alert"`, danger styling, `Retry` + dismiss), and the table structure is left
+  intact — no more `<tr><td colspan=3>Failed to load…` pseudo-row destroying the tbody.
+- A successful fetch hides the banner and renders rows as usual. The genuine zero-results
+  case still uses the empty-state row (correct container).
+- Verified live: failure -> banner with message + Retry, no pseudo-row; dismiss + success-clear both work.
+- 6 new unit tests (incl. regression guard that the catch never touches the tbody).

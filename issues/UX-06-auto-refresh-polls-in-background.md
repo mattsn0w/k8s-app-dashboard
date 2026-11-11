@@ -25,3 +25,14 @@ Low. Pause the interval on `document.visibilitychange` hidden, resume + immediat
 Evidence in `web/index.html`:
 
 `setInterval(refreshAll, 10000)` at the end of the script; no `document.visibilitychange` handler to pause when the tab is hidden.
+
+## Resolution — 2026-11-10 (UX-06)
+
+**Status: ✅ FIXED + deployed + browser-verified**
+
+- Polling is now gated on `document.hidden`: the 10s interval tick skips `refreshAll()`
+  while the tab is in the background (saves network + battery, avoids request pile-up).
+- A `visibilitychange` listener refreshes immediately when the tab returns, so the view is
+  never stale on return.
+- Verified live: simulated hidden tab -> 0 fetches on tick; visible -> 1 fetch.
+- 5 new unit tests.

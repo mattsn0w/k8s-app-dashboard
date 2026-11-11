@@ -25,3 +25,19 @@ Low. Enhance the (new) confirm modal to show a summary of affected resources and
 Evidence in `web/index.html`:
 
 Delete uses a generic native `confirm("…This cannot be undone.")` with no preview of affected resources (replicas/pods) and no typed confirmation.
+
+## Resolution — 2026-11-10 (UX-16)
+
+**Status: ✅ FIXED + deployed + browser-verified**
+
+- `confirmAction()` gained an optional `requireText` field (type-to-confirm): when set,
+  a `Type <name> to confirm:` input appears and the **OK button stays disabled** until the
+  user types exactly that text. Type box is auto-focused; focus still never lands on the
+  destructive button by default.
+- `deleteDeployment()` now passes `requireText: name` and a richer preview detail —
+  "This will remove <name>, N replica(s), M currently running."
+- `_confirmResolve()` tears down the input listener, re-enables OK, and hides/clears the
+  type box on close, so a later plain confirm isn't left disabled.
+- Verified live: OK disabled → still disabled on wrong text → enabled on exact name →
+  Cancel made no DELETE call → close resets state. Danger styling + preview detail present.
+- 12 new unit tests (enable/disable rule + source wiring guards).

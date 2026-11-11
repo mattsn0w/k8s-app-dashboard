@@ -25,3 +25,13 @@ Low. Add a "Copy" button and a "public key" label/hint; optionally mask the body
 Evidence in `web/index.html`:
 
 `openSSHKeyModal` sets `sshKeyInput.value = data['ssh-public-key']` (plaintext). Title already says 'SSH Public Key' (labeling partly addressed) but there is no copy button for the stored key and no reveal/mask.
+
+## Resolution — 2026-11-10 (UX-12)
+
+**Status: ✅ FIXED + deployed + browser-verified**
+
+- Added a **Copy** button to the SSH Public Key modal (uses the `copy-16` Octicon). It
+  copies the current textarea value with a success toast; an empty key yields a gentle
+  info toast rather than an error. Clipboard API with a legacy `execCommand` fallback.
+- Verified live: Copy put the exact key text on the clipboard.
+- 3 new unit tests.

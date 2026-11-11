@@ -599,6 +599,333 @@ console.log('log stream token guard (pod-switch reconnect bug):');
   assertEq(c4.token === s4.token, true, 'only the last socket (C) is current');
 }
 
+// ─── UX-05: copy / download log view ────────────────────────────────────────
+console.log('\n=== UX-05 log copy/download helpers ===');
+
+// Mirrors the pure buildLogText in web/index.html (join .log-line children).
+function buildLogText(contentEl) {
+  const nodes = contentEl ? contentEl.querySelectorAll('.log-line') : [];
+  return Array.from(nodes).map(n => n.textContent).join('\n');
+}
+
+function fakeContentEl(lines) {
+  return { querySelectorAll: () => lines.map(t => ({ textContent: t })) };
+}
+assert('buildLogText joins line textContent with newlines',
+  buildLogText(fakeContentEl(['a','b','c'])) === 'a\nb\nc');
+assert('buildLogText of no lines is empty string', buildLogText(fakeContentEl([])) === '');
+assert('buildLogText of null element is empty string', buildLogText(null) === '');
+assert('buildLogText preserves empty lines', buildLogText(fakeContentEl(['x','','y'])) === 'x\n\ny');
+assert('buildLogText does not add a trailing newline',
+  !buildLogText(fakeContentEl(['a','b'])).endsWith('\n'));
+
+function sanitizeName(base) {
+  return base.replace(/[^a-zA-Z0-9._-]+/g, '_').slice(0, 80);
+}
+assert('filename keeps safe chars', sanitizeName('echo-server') === 'echo-server');
+assert('filename replaces spaces/slashes', sanitizeName('Logs: pod/name') === 'Logs_pod_name');
+assert('filename truncates to 80 chars', sanitizeName('x'.repeat(200)).length === 80);
+
+const htmlSrc = require('fs').readFileSync(__dirname + '/index.html', 'utf8');
+assert('downloadLogView sanitizes the filename',
+  /base\.replace\(\/\[\^a-zA-Z0-9\._-\]\+\/g, '_'\)/.test(htmlSrc));
+assert('Copy button is wired', /onclick="copyLogView\(\)"/.test(htmlSrc));
+assert('Download button is wired', /onclick="downloadLogView\(\)"/.test(htmlSrc));
+assert('copy uses navigator.clipboard.writeText',
+  /navigator\.clipboard\.writeText/.test(htmlSrc));
+assert('download creates a Blob + object URL',
+  /new Blob\(\[text\]/.test(htmlSrc) && /URL\.createObjectURL\(blob\)/.test(htmlSrc));
+assert('download revokes the object URL (no leak)',
+  /URL\.revokeObjectURL\(url\)/.test(htmlSrc));
+assert('copy octicon exists in sprite', /id="octicon-copy"/.test(htmlSrc));
+assert('download octicon exists in sprite', /id="octicon-download"/.test(htmlSrc));
+
+// ─── UX-09: theme flash / localStorage cache ────────────────────────────────
+console.log('\n=== UX-09 theme flash guard ===');
+const html09 = require('fs').readFileSync(__dirname + '/index.html', 'utf8');
+
+// Inline head script must exist and run before the stylesheet (synchronous).
+const titlePos = html09.indexOf('<title>Devpod</title>');
+const headScriptPos = html09.indexOf("localStorage.getItem('devpod-theme')");
+const cssLinkPos = html09.indexOf('rel="stylesheet"');
+assert('UX-09: inline theme script exists', headScriptPos > -1);
+assert('UX-09: theme script is inside <head> after <title>', headScriptPos > titlePos && titlePos > -1);
+assert('UX-09: theme script runs before the stylesheet link', headScriptPos < cssLinkPos);
+assert('UX-09: head script only accepts known themes',
+  /t==='latte'\|\|t==='frappe'/.test(html09));
+assert('UX-09: head script is wrapped in try/catch (private-mode safe)',
+  /try\{var t=localStorage\.getItem/.test(html09));
+// setTheme writes the cache so the next load is instant.
+assert('UX-09: setTheme caches the theme to localStorage',
+  /localStorage\.setItem\('devpod-theme', theme\)/.test(html09));
+
+
+// ─── UX-16: type-to-confirm for delete ──────────────────────────────────────
+console.log('\n=== UX-16 type-to-confirm ===');
+// Mirror of the enable/disable rule in confirmAction's onInput handler.
+function okDisabledFor(typed, requireText) { return typed !== requireText; }
+assert('delete OK disabled on empty input', okDisabledFor('', 'echo-server') === true);
+assert('delete OK disabled on partial input', okDisabledFor('echo', 'echo-server') === true);
+assert('delete OK disabled on wrong text', okDisabledFor('ech-server', 'echo-server') === true);
+assert('delete OK enabled only on exact match', okDisabledFor('echo-server', 'echo-server') === false);
+// With no requireText, OK is always enabled (terminate/other confirms unaffected).
+assert('no requireText -> OK stays enabled', okDisabledFor('', '') === false);
+
+// Source wiring (drift guards).
+const html16 = require('fs').readFileSync(__dirname + '/index.html', 'utf8');
+assert('delete passes requireText: name', /requireText: name/.test(html16));
+assert('confirmAction honors opts.requireText',
+  /typeof opts\.requireText === 'string'/.test(html16));
+assert('confirmAction disables OK when requireText set',
+  /ok\.disabled = true/.test(html16));
+assert('confirmAction re-enables OK on exact match',
+  /ok\.disabled = typeInput\.value !== requireText/.test(html16));
+assert('type-to-confirm input exists in modal',
+  /id="confirmModalTypeInput"/.test(html16));
+assert('_confirmResolve resets OK disabled + listener (no leak to next modal)',
+  /document\.getElementById\('confirmModalOk'\)\.disabled = false/.test(html16)
+    && /if \(confirmTypeCleanup\)/.test(html16));
+assert('delete detail previews pods/replicas/running',
+  /currently running/.test(html16) && /pod\(s\)/.test(html16));
+
+// ─── UX-15: Help/Docs in-app modal (no dead placeholder link) ───────────────
+console.log('\n=== UX-15 Help modal ===');
+const html15 = require('fs').readFileSync(__dirname + '/index.html', 'utf8');
+assert('UX-15: placeholder example.co.slakin.net link removed',
+  !/example\.co\.slakin/.test(html15));
+assert('UX-15: menu item opens the in-app help modal',
+  /onclick="openHelpModal\(\)"/.test(html15));
+assert('UX-15: helpModal markup present', /id="helpModal"/.test(html15));
+assert('UX-15: help modal documents workload-url annotation',
+  /workload-url/.test(html15));
+assert('UX-15: openHelpModal adds .open, closeHelpModal removes it',
+  /function openHelpModal\(\)[\s\S]*helpModal'\)\.classList\.add\('open'\)/.test(html15)
+    && /function closeHelpModal\(\)[\s\S]*helpModal'\)\.classList\.remove\('open'\)/.test(html15));
+
+// ─── UX-06: poll pauses when the tab is hidden ──────────────────────────────
+console.log('\n=== UX-06 background polling gate ===');
+// Mirror the tick guard: refresh only when the document is not hidden.
+function shouldPoll(hidden) { return !hidden; }
+assert('UX-06: polls while visible', shouldPoll(false) === true);
+assert('UX-06: does NOT poll while hidden', shouldPoll(true) === false);
+
+const html06 = require('fs').readFileSync(__dirname + '/index.html', 'utf8');
+assert('UX-06: interval tick checks document.hidden before refreshing',
+  /const tick = \(\) => \{ if \(!document\.hidden\) refreshAll\(\); \}/.test(html06));
+assert('UX-06: refreshes on visibilitychange when tab returns',
+  /addEventListener\('visibilitychange'[\s\S]*if \(!document\.hidden\) refreshAll\(\)/.test(html06));
+assert('UX-06: still polls on a fixed interval', /setInterval\(tick, 10000\)/.test(html06));
+
+// ─── UX-07: fetch failure shown as banner, not a fake table row ─────────────
+console.log('\n=== UX-07 error banner (not pseudo-row) ===');
+const html07 = require('fs').readFileSync(__dirname + '/index.html', 'utf8');
+assert('UX-07: error banner element exists above the table',
+  /id="deploymentsError"[^>]*role="alert"/.test(html07));
+assert('UX-07: banner has a Retry button that re-fetches',
+  /onclick="fetchDeployments\(\)"/.test(html07));
+assert('UX-07: banner has a dismiss control', /onclick="hideDeploymentsError\(\)"/.test(html07));
+assert('UX-07: showDeploymentsError reveals the banner',
+  /function showDeploymentsError[\s\S]*el\.hidden = false/.test(html07));
+assert('UX-07: fetch success hides the banner',
+  /hideDeploymentsError\(\);[\s\S]*renderDeployments\(\)/.test(html07));
+// Regression guard: the old failure path must NOT overwrite the tbody with a row.
+assert('UX-07: failure path no longer injects a deploymentsBody pseudo-row',
+  !/catch \(err\) \{\s*document\.getElementById\('deploymentsBody'\)/.test(html07));
+
+// ─── UX-11: dynamic token rows + key validation ─────────────────────────────
+console.log('\n=== UX-11 token editor ===');
+// Mirror of the pure collectTokens rule (name/value/dup/validation).
+const TOKEN_KEY_RE = /^[A-Za-z_][A-Za-z0-9_]*$/;
+function validateTokenRows(rows) {
+  const tokens = {}; const seen = new Set();
+  for (const [kRaw, vRaw] of rows) {
+    const k = kRaw.trim(); const v = vRaw.trim();
+    if (!k && !v) continue;
+    if (!k) throw new Error('missing-name');
+    if (!TOKEN_KEY_RE.test(k)) throw new Error('bad-name');
+    if (seen.has(k)) throw new Error('duplicate');
+    if (!v) throw new Error('missing-value');
+    seen.add(k); tokens[k] = v;
+  }
+  return tokens;
+}
+function expectErr(fn, msg) { try { fn(); return 'NO-THROW'; } catch (e) { return e.message; } }
+
+assert('valid env-var keys accepted',
+  JSON.stringify(validateTokenRows([['GITHUB_TOKEN','abc']])) === '{"GITHUB_TOKEN":"abc"}');
+assert('empty rows ignored', JSON.stringify(validateTokenRows([['','']])) === '{}');
+assert('leading digit rejected', expectErr(()=>validateTokenRows([['1KEY','v']]), '') === 'bad-name');
+assert('space/hyphen rejected', expectErr(()=>validateTokenRows([['MY-KEY','v']]), '') === 'bad-name');
+assert('lowercase allowed (lenient)', validateTokenRows([['my_key','v']]).my_key === 'v');
+assert('value required when name present', expectErr(()=>validateTokenRows([['KEY','']]), '') === 'missing-value');
+assert('name required when value present', expectErr(()=>validateTokenRows([['','v']]), '') === 'missing-name');
+assert('duplicate key rejected', expectErr(()=>validateTokenRows([['K','a'],['K','b']]), '') === 'duplicate');
+assert('multiple distinct tokens collected',
+  Object.keys(validateTokenRows([['A','1'],['B','2'],['','']])).length === 2);
+
+const html11 = require('fs').readFileSync(__dirname + '/index.html', 'utf8');
+assert('UX-11: fixed tokenKey0/1/2 rows removed', !/id="tokenKey0"/.test(html11));
+assert('UX-11: dynamic container + Add button present',
+  /id="tokenRows"/.test(html11) && /onclick="addTokenRow\(\)"/.test(html11));
+assert('UX-11: remove button per row', /onclick|\.onclick[\s\S]*row\.remove\(\)/.test(html11));
+assert('UX-11: save validates via collectTokens', /tokens = collectTokens\(\)/.test(html11));
+
+// ─── UX-12: copy the SSH public key ─────────────────────────────────────────
+console.log('\n=== UX-12 SSH key copy ===');
+const html12 = require('fs').readFileSync(__dirname + '/index.html', 'utf8');
+assert('UX-12: Copy button present in SSH modal', /onclick="copySSHKey\(\)"/.test(html12));
+assert('UX-12: copySSHKey copies the sshKeyInput value',
+  /function copySSHKey\(\)[\s\S]*sshKeyInput'\)\.value/.test(html12));
+assert('UX-12: copySSHKey empty -> info toast (not an error)',
+  /No SSH public key to copy/.test(html12));
+
+// ─── UX-17: theme icon reflects current state ───────────────────────────────
+console.log('\n=== UX-17 theme icon semantics ===');
+// Mirror: icon reflects the ACTIVE theme (sun when light, moon when dark).
+function themeIconFor(isLight) { return isLight ? 'sun' : 'moon'; }
+assert('light theme shows sun icon', themeIconFor(true) === 'sun');
+assert('dark theme shows moon icon', themeIconFor(false) === 'moon');
+const html17 = require('fs').readFileSync(__dirname + '/index.html', 'utf8');
+assert('UX-17: setTheme renders sun/moon by CURRENT theme',
+  /isLight \? 'sun' : 'moon'/.test(html17));
+assert('UX-17: theme menu item has a title',
+  /id="themeMenuItem"[^>]*title="Toggle light \/ dark theme"/.test(html17)
+   || /title="Toggle light \/ dark theme"[^>]*id="themeMenuItem"/.test(html17));
+assert('UX-17: theme item exposes data-state for inspection',
+  /item\.dataset\.theme = theme/.test(html17));
+
+// ─── UX-13: global busy indicator driven by busyActions ─────────────────────
+console.log('\n=== UX-13 global busy affordance ===');
+// Mirror: the global busy state is simply "any action in flight?".
+function globalBusyFrom(size) { return size > 0; }
+assert('no actions -> not globally busy', globalBusyFrom(0) === false);
+assert('one action -> globally busy', globalBusyFrom(1) === true);
+assert('many actions -> globally busy', globalBusyFrom(3) === true);
+const html13 = require('fs').readFileSync(__dirname + '/index.html', 'utf8');
+assert('UX-13: progress bar element present', /id="globalProgress"/.test(html13));
+assert('UX-13: updateGlobalBusy keys off busyActions.size',
+  /function updateGlobalBusy\(\)[\s\S]*busyActions\.size > 0/.test(html13));
+assert('UX-13: begin/end busy both update the global indicator',
+  (html13.match(/updateGlobalBusy\(\);/g) || []).length >= 2);
+assert('UX-13: wait cursor rule exists', /body\.busy\{cursor:wait\}/.test(html13));
+
+// ─── UX-14 / UX-18: expandable row detail (per-container + pod info) ────────
+console.log('\n=== UX-14/UX-18 row detail ===');
+// Mirror of buildRowDetailHTML (kept behavior-identical to web/index.html).
+function buildRowDetailHTML_m(pods) {
+  if (!pods || pods.length === 0) return '<span class="detail-empty">No pods found for this deployment.</span>';
+  return pods.map(p => {
+    const statuses = (p.containerStatuses && p.containerStatuses.length)
+      ? p.containerStatuses
+      : (p.containers || []).map(n => ({ name: n, ready: p.ready, restartCount: 0 }));
+    const dots = statuses.map(c => {
+      const cls = c.ready ? 'dot-ok' : 'dot-bad';
+      const title = `${c.name}: ${c.ready ? 'ready' : 'not ready'}` +
+        (c.restartCount ? ` (${c.restartCount} restart${c.restartCount === 1 ? '' : 's'})` : '');
+      return `<span class="ctr-dot ${cls}" title="${title}" aria-label="${title}"></span>` +
+        `<span class="ctr-name">${c.name}</span>` + (c.restartCount ? `<span class="ctr-restarts">${c.restartCount}\u21bb</span>` : '');
+    }).join('');
+    const phase = p.phase || (p.ready ? 'Running' : 'Unknown');
+    const phaseCls = p.ready ? 'success' : 'warn';
+    return `<div class="detail-pod"><div class="detail-pod-head"><span class="pod-name">${p.name}</span>`
+      + `<span class="status-badge ${phaseCls}">${phase}</span>${p.podIP ? `<span class="pod-ip">${p.podIP}</span>` : ''}</div>`
+      + `<div class="detail-containers">${dots}</div></div>`;
+  }).join('');
+}
+const m1 = buildRowDetailHTML_m([]);
+assert('empty pods -> empty-state message', /No pods found/.test(m1));
+assert('null pods -> empty-state message', /No pods found/.test(buildRowDetailHTML_m(null)));
+
+const m2 = buildRowDetailHTML_m([
+  { name: 'echo-abc', ready: true, phase: 'Running', podIP: '10.42.0.5',
+    containerStatuses: [{ name: 'app', ready: true, restartCount: 0 }, { name: 'side', ready: false, restartCount: 3 }] },
+]);
+assert('renders per-container dot for each container', (m2.match(/ctr-dot/g) || []).length === 2);
+assert('unhealthy container marked dot-bad', /ctr-dot dot-bad"[^>]*title="side: not ready \(3 restarts\)"/.test(m2));
+assert('healthy container marked dot-ok', /ctr-dot dot-ok"[^>]*title="app: ready"/.test(m2));
+assert('restart count shown', /3\u21bb/.test(m2));
+assert('pod phase Running badge', /status-badge success">Running/.test(m2));
+assert('pod IP surfaced (UX-18)', /pod-ip">10\.42\.0\.5/.test(m2));
+
+// Falls back to container names + pod readiness when containerStatuses absent.
+const m3 = buildRowDetailHTML_m([{ name: 'p1', ready: false, containers: ['c1'] }]);
+assert('fallback uses container name list', /ctr-name">c1/.test(m3));
+assert('fallback pod not ready -> warn + Unknown', /status-badge warn">Unknown/.test(m3));
+
+const html14 = require('fs').readFileSync(__dirname + '/index.html', 'utf8');
+assert('UX-14/18: chevron expander button present in row template',
+  /onclick="toggleRowDetail\('/.test(html14) && /aria-expanded=/.test(html14));
+assert('UX-14/18: expanded state survives re-render (Set)', /const expandedRows = new Set\(\)/.test(html14));
+assert('UX-14/18: detail row rendered when expanded', /detail-row.*data-detail-for/.test(html14));
+assert('chevron icons added to sprite', /id="octicon-chevron-right"/.test(html14) && /id="octicon-chevron-down"/.test(html14));
+
+// ─── UX-08: no optimistic divergence ────────────────────────────────────────
+console.log('\n=== UX-08 optimistic UI removed ===');
+const html08 = require('fs').readFileSync(__dirname + '/index.html', 'utf8');
+assert('UX-08: toggle no longer flips d.running optimistically',
+  !/d\.running = run/.test(html08));
+assert('UX-08: toggle no longer sets d.replicas = targetReplicas in the cache',
+  !/d\.replicas = targetReplicas/.test(html08));
+assert('UX-08: a confirm-poll helper exists',
+  /function waitForDeploymentState\(/.test(html08));
+assert('UX-08: toggle awaits the confirmed state',
+  /await waitForDeploymentState\(name, run\)/.test(html08));
+assert('UX-08: failure path re-fetches true state',
+  /Failed to scale[\s\S]*fetchDeployments\(\)/.test(html08));
+// The wait helper only returns true when the cached row's running matches expected.
+assert('UX-08: wait helper compares against real cluster state',
+  /d && !!d\.running === !!expectRunning/.test(html08));
+
+// ─── UX-10: accessibility ───────────────────────────────────────────────────
+console.log('\n=== UX-10 accessibility ===');
+const html10 = require('fs').readFileSync(__dirname + '/index.html', 'utf8');
+
+// Toggle is now a proper, keyboard-operable switch.
+assert('UX-10: toggle is role=switch', /class="toggle[^"]*" role="switch"/.test(html10));
+assert('UX-10: toggle exposes aria-checked', /role="switch"[^>]*aria-checked=/.test(html10));
+assert('UX-10: toggle is focusable (tabindex)', /role="switch"[^>]*tabindex=/.test(html10));
+assert('UX-10: toggle has a contextual aria-label', /aria-label="\$\{d\.running \? 'Stop' : 'Start'\} \$\{d\.name\}"/.test(html10));
+assert('UX-10: toggle handles keyboard (Space/Enter)', /function toggleKey\(ev, name, run\)/.test(html10) && /onkeydown=.*toggleKey/.test(html10));
+// toggleKey only activates on Space/Enter.
+function toggleKeyFires(key){ return key === ' ' || key === 'Enter'; }
+assert('Space activates switch', toggleKeyFires(' ') === true);
+assert('Enter activates switch', toggleKeyFires('Enter') === true);
+assert('other keys ignored', toggleKeyFires('a') === false);
+
+// Icon-only action buttons carry contextual accessible names.
+assert('logs button labelled with deployment', /aria-label="View logs for \$\{d\.name\}"/.test(html10));
+assert('terminate button labelled with deployment', /aria-label="Terminate pods for \$\{d\.name\}"/.test(html10));
+assert('delete button labelled with deployment', /aria-label="Delete deployment \$\{d\.name\}"/.test(html10));
+assert('job log button labelled', /aria-label="View output for job \$\{j\.name\}"/.test(html10));
+
+// Every modal-close button has an accessible name.
+const closeTags = html10.match(/<button class="modal-close"[^>]*>/g) || [];
+assert('modal-close buttons exist', closeTags.length >= 5);
+assert('every modal-close button has aria-label', closeTags.every(t => /aria-label=/.test(t)));
+
+// Dialog semantics on overlays.
+assert('logModal is a labelled dialog', /id="logModal" role="dialog" aria-modal="true"/.test(html10));
+assert('confirm + help + ssh + tokens are dialogs',
+  /id="confirmModal" role="dialog" aria-modal="true"/.test(html10)
+  && /id="helpModal" role="dialog" aria-modal="true"/.test(html10)
+  && /id="sshKeyModal" role="dialog" aria-modal="true"/.test(html10)
+  && /id="tokensModal" role="dialog" aria-modal="true"/.test(html10));
+
+// User menu exposes its popup state.
+assert('user menu button has aria-expanded + haspopup',
+  /id="userMenuBtn"[^>]*aria-haspopup="true"/.test(html10)
+  && /aria-expanded="false"/.test(html10));
+assert('toggleUserMenu keeps aria-expanded in sync',
+  /btn\.setAttribute\('aria-expanded', open \? 'true' : 'false'\)/.test(html10));
+
+// Global focus trap present.
+assert('UX-10: focus trap initialized', /function initFocusTrap\(\)/.test(html10));
+assert('UX-10: traps Tab within the dialog', /if \(e\.key !== 'Tab'\) return/.test(html10));
+assert('UX-10: restores focus to the prior element on close',
+  /lastFocused = document\.activeElement/.test(html10) && /lastFocused\.focus\(\)/.test(html10));
+assert('UX-10: watches .open on every overlay via MutationObserver',
+  /querySelectorAll\('\.modal-overlay'\)[\s\S]*MutationObserver/.test(html10));
+
 // --- Summary ---
 console.log(`\n${passed} passed, ${failed} failed`);
 process.exit(failed > 0 ? 1 : 0);

@@ -25,3 +25,14 @@ Medium. A tooltip is cheap; a proper expandable row (fetching pod/replica-set de
 Evidence in `web/index.html`:
 
 Deployment rows are 3 columns (Name/Status/Actions); no hover tooltip or expandable row for image/restarts/age/pod IPs/annotations.
+
+## Resolution — 2026-11-10 (UX-18)
+
+**Status: ✅ FIXED + deployed + browser-verified**
+
+- The same expandable row surfaces secondary detail on demand **without re-adding table
+  columns**: per-pod name, phase badge (Running/warn), pod IP, and per-container restarts.
+- Kept the clean 3-column layout; the extra context lives in the collapsible detail row.
+- (Image/annotations were intentionally left out — pod-level runtime detail was the higher-
+  value addition and needs no extra API surface beyond the enriched pods view.)
+- Verified live: expanding shows pod boxes with IPs. Tests shared with UX-14.

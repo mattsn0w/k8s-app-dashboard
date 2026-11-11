@@ -25,3 +25,16 @@ Low. Make rows dynamic (add/remove buttons, iterate the map) and validate key fo
 Evidence in `web/index.html`:
 
 The tokens modal still renders exactly 3 hardcoded rows (`tokenKey0/1/2`); no add/remove, no key validation.
+
+## Resolution — 2026-11-10 (UX-11)
+
+**Status: ✅ FIXED + deployed + browser-verified**
+
+- Replaced the fixed 3-row token grid (`tokenKey0/1/2`) with a **dynamic** list:
+  `Add token` button (official `plus-16` Octicon) + a per-row remove button. Opening the
+  modal now renders one row per stored token (or a single empty row if none).
+- `collectTokens()` validates on save: keys must match `^[A-Za-z_][A-Za-z0-9_]*$`, empty
+  rows are ignored, and blank values / duplicate names produce a clear error toast instead
+  of silently saving a malformed map.
+- Verified live: add/remove adjust row counts; invalid (`1BAD`) and duplicate keys rejected.
+- 10 new unit tests (validation matrix + source wiring).

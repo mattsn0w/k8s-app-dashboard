@@ -25,3 +25,14 @@ Low. Swap the icon to reflect the *current* theme (moon when light, sun when dar
 Evidence in `web/index.html`:
 
 The theme icon reflects the *action* (moon when light = 'switch to dark'), not the *current* theme as the issue requests (moon when dark). There is no `title`. Borderline: the action-oriented icon + 'Switch to X' label is arguably clear, but the state-icon request is unmet.
+
+## Resolution — 2026-11-10 (UX-17)
+
+**Status: ✅ FIXED + deployed + browser-verified**
+
+- The theme menu icon now reflects the **active** theme (sun when light, moon when dark)
+  instead of the pending action, so the current state is legible at a glance; the label
+  still spells out the action ("Switch to Dark/Light").
+- Added a `title="Toggle light / dark theme"` to the menu item and a `data-theme` state
+  attribute on the item for inspection/testing.
+- 5 new unit tests. Verified live: light->sun, dark->moon, title present.

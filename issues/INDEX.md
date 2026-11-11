@@ -1,5 +1,9 @@
 # Issues — index & priority matrix
 
+> **Status (2026-11-10): all UX issues resolved — 31 issues FIXED/RESOLVED, 0 open.**
+> The priority matrix below is the *original* Severity × Effort planning snapshot;
+> the per-issue table further down carries the live ✅ FIXED / 🔴 OPEN status.
+
 Each issue is a single markdown file in this directory, capturing **type**, **summary**, **severity**, **effort**, and the reasoning (why ranked, severity justification, dependencies, effort justification).
 
 ## Suggested execution order
@@ -66,20 +70,20 @@ Each issue is a single markdown file in this directory, capturing **type**, **su
 | UX-02 | No loading/disabled state on action buttons | Medium | Low | ✅ FIXED (busy-state + spinner; double-click guard; 11 unit + 12 functional tests) |
 | UX-03 | Log modal silently picks first pod/container | High | Medium | ✅ FIXED + deployed + browser-verified on echo-server (2026-10-28) |
 | UX-04 | Log view keeps every line in the DOM | Medium | Low | ✅ FIXED + deployed + browser-verified (cap 2000, 2026-10-29) |
-| UX-05 | No copy or download of the log view | Medium | Low | 🔴 still present (log modal footer has no Copy/Download) |
-| UX-06 | 10 s poll continues when tab is hidden | Low | Low | 🔴 still present (setInterval, no visibilitychange gate) |
-| UX-07 | Failed load renders error as a table row | Low | Low | 🔴 still present (catch injects a pseudo-row) |
-| UX-08 | Optimistic UI update can diverge from state | Low | Low | 🔴 still present (optimistic mutation + delayed refresh) |
-| UX-09 | Theme flash on load | Low | Low | 🔴 still present (no inline head script; setTheme after paint) |
-| UX-10 | Weak accessibility (ARIA/labels) | Medium | Medium | 🔴 still present (1 aria-label total; icon buttons unlabeled) |
-| UX-11 | Access-token editor fixed to 3 rows | Low | Low | 🔴 still present (3 hardcoded rows, no add/remove) |
-| UX-12 | SSH key shown in plaintext, no copy | Low | Low | 🔴 still present (plaintext, no copy button; title already says 'Public Key') |
-| UX-13 | No busy cursor during long operations | Low | Low | 🔴 still present (no cursor:wait/progress bar) |
-| UX-14 | Merged Status column hides per-container detail | Medium | Medium | 🔴 still present (single badge, no per-container detail) |
-| UX-15 | Help/Docs link points to a placeholder | Low | Low | 🔴 still present (href → example.co.slakin.net) |
-| UX-16 | Delete confirmation lacks detail / no preview | Medium | Low | 🔴 still present (generic native confirm) |
-| UX-17 | Single theme-toggle semantics unclear | Low | Low | 🔴 still present (icon reflects action, not current theme; no title) — *borderline* |
-| UX-18 | Table rows hide detail (no tooltip/expand) | Low | Medium | 🔴 still present (3 columns, no tooltip/expand) |
+| UX-05 | No copy or download of the log view | Medium | Low | ✅ FIXED + deployed + browser-verified (Copy/Download + toast, 16 tests, 2026-11-10) |
+| UX-06 | 10 s poll continues when tab is hidden | Low | Low | ✅ FIXED + deployed + browser-verified (visibilitychange gate, 2026-11-10) |
+| UX-07 | Failed load renders error as a table row | Low | Low | ✅ FIXED + deployed + browser-verified (dismissible banner + retry, 2026-11-10) |
+| UX-08 | Optimistic UI update can diverge from state | Low | Low | ✅ FIXED + deployed + browser-verified (poll-for-confirm, no optimistic flip, 2026-11-10) |
+| UX-09 | Theme flash on load | Low | Low | ✅ FIXED + deployed + browser-verified (inline head script + localStorage cache, 2026-11-10) |
+| UX-10 | Weak accessibility (ARIA/labels) | Medium | Medium | ✅ FIXED + deployed + browser-verified (switch role, labels, dialog roles, focus trap; 2026-11-10) |
+| UX-11 | Access-token editor fixed to 3 rows | Low | Low | ✅ FIXED + deployed + browser-verified (dynamic add/remove + validation, 2026-11-10) |
+| UX-12 | SSH key shown in plaintext, no copy | Low | Low | ✅ FIXED + deployed + browser-verified (Copy button + toast, 2026-11-10) |
+| UX-13 | No busy cursor during long operations | Low | Low | ✅ FIXED + deployed + browser-verified (top progress bar + wait cursor, 2026-11-10) |
+| UX-14 | Merged Status column hides per-container detail | Medium | Medium | ✅ FIXED + deployed + browser-verified (expandable per-container dots, 2026-11-10) |
+| UX-15 | Help/Docs link points to a placeholder | Low | Low | ✅ FIXED + deployed + browser-verified (in-app Help modal, no dead link, 2026-11-10) |
+| UX-16 | Delete confirmation lacks detail / no preview | Medium | Low | ✅ FIXED + deployed + browser-verified (type-to-confirm + resource preview, 2026-11-10) |
+| UX-17 | Single theme-toggle semantics unclear | Low | Low | ✅ FIXED + deployed + browser-verified (state icon + title, 2026-11-10) |
+| UX-18 | Table rows hide detail (no tooltip/expand) | Low | Medium | ✅ FIXED + deployed + browser-verified (expandable pod/IP/phase detail, 2026-11-10) |
 
 ## Cluster / infrastructure
 | ID | Title | Severity | Effort | Status |

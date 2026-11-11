@@ -161,9 +161,12 @@ type podSpec struct {
 
 type podStatus struct {
 	Phase             string `json:"phase"`
+	HostIP            string `json:"hostIP"`
+	PodIP             string `json:"podIP"`
 	ContainerStatuses []struct {
-		Name  string `json:"name"`
-		Ready bool   `json:"ready"`
+		Name         string `json:"name"`
+		Ready        bool   `json:"ready"`
+		RestartCount int    `json:"restartCount"`
 	} `json:"containerStatuses"`
 }
 
@@ -389,10 +392,19 @@ type deploymentView struct {
 	WorkloadIcon   string   `json:"workloadIcon,omitempty"`
 }
 
+type containerStatusView struct {
+	Name         string `json:"name"`
+	Ready        bool   `json:"ready"`
+	RestartCount int    `json:"restartCount"`
+}
+
 type podView struct {
-	Name       string   `json:"name"`
-	Ready      bool     `json:"ready"`
-	Containers []string `json:"containers"`
+	Name              string                  `json:"name"`
+	Ready             bool                    `json:"ready"`
+	Containers        []string                `json:"containers"` // names (kept for the log selector)
+	ContainerStatuses []containerStatusView   `json:"containerStatuses"` // UX-14: per-container readiness
+	Phase             string                  `json:"phase,omitempty"`   // UX-18: Running/Pending/...
+	PodIP             string                  `json:"podIP,omitempty"`
 }
 
 // ---------- handlers ----------
@@ -455,7 +467,18 @@ func (c *k8sClient) listPodsByLabels(ctx context.Context, selector string) ([]po
 		for _, ctr := range p.Spec.Containers {
 			cn = append(cn, ctr.Name)
 		}
-		out = append(out, podView{Name: p.Metadata.Name, Ready: ready, Containers: cn})
+		cs := make([]containerStatusView, 0, len(p.Status.ContainerStatuses))
+		for _, c := range p.Status.ContainerStatuses {
+			cs = append(cs, containerStatusView{Name: c.Name, Ready: c.Ready, RestartCount: c.RestartCount})
+		}
+		out = append(out, podView{
+			Name:              p.Metadata.Name,
+			Ready:             ready,
+			Containers:        cn,
+			ContainerStatuses: cs,
+			Phase:             p.Status.Phase,
+			PodIP:             p.Status.PodIP,
+		})
 	}
 	return out, nil
 }

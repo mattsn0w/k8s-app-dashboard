@@ -25,3 +25,15 @@ Low. Replace the href with the real docs URL (or remove the item until it exists
 Evidence in `web/index.html`:
 
 The user menu 'Help/Docs' link still points to the placeholder `http://example.co.slakin.net` (line 177).
+
+## Resolution — 2026-11-10 (UX-15)
+
+**Status: ✅ FIXED + deployed + browser-verified**
+
+- Replaced the dead `http://example.co.slakin.net` "Help/Docs" link with a button that
+  opens an **in-app Help modal** (no external dependency, so it can never dead-link again).
+- The modal documents the `workload-url` / `workload-icon` annotations, the Basic/Advanced
+  view modes, live log streaming + Copy/Download, and the SSH/Tokens/Sign-out menu items.
+- Overlay click + Escape close it; `aria-modal`/`aria-labelledby` set. No placeholder URLs
+  remain anywhere in `web/index.html`.
+- 5 new unit tests (placeholder link removed; modal opens/closes; documents annotations).

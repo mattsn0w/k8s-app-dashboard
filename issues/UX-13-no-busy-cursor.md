@@ -25,3 +25,15 @@ Low. Reuse the in-flight flag from UX-02 to toggle a `wait` cursor or a thin top
 Evidence in `web/index.html`:
 
 No `cursor:wait` / progress bar / global busy affordance anywhere; relies entirely on the (absent) per-button state from UX-02.
+
+## Resolution — 2026-11-10 (UX-13)
+
+**Status: ✅ FIXED + deployed + browser-verified**
+
+- Added a global busy affordance driven by the UX-02 `busyActions` set (single source of
+  truth, so it never drifts from the per-button state): a thin indeterminate **top progress
+  bar** plus a **`cursor: wait`** on the whole page while any action is in flight.
+- `updateGlobalBusy()` runs on every `beginBusy`/`endBusy`; toggles the bar's `.active`,
+  `aria-hidden`, and `body.busy`.
+- 6 new unit tests. Verified live: beginBusy -> bar active + wait cursor + aria-hidden=false;
+  endBusy -> all cleared.
